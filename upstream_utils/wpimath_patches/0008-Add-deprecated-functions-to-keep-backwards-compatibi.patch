@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 03:41:15 -0400
+Subject: [PATCH 08/11] Add deprecated functions to keep backwards
+ compatibility
+
+---
+ .../main/java/edu/wpi/first/math/geometry/Pose2d.java  | 10 ++++++++++
+ .../first/math/kinematics/MecanumDriveWheelSpeeds.java |  5 +++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+index ea8f835170079d5448537f2ff328d6e8d11a06cb..06674837e1a6ce7975ec52ab8ea977ce941c9dba 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+@@ -306,4 +306,14 @@ public class Pose2d implements Interpolatable<Pose2d> {
+       return this.exp(scaledTwist);
+     }
+   }
++
++  @Deprecated
++  public Pose2d rotate(double deltaTheta) {
++    return new Pose2d(m_translation, new Rotation2d(getHeading() + deltaTheta));
++  }
++
++  @Deprecated
++  public double getHeading() {
++    return m_rotation.getRadians();
++  }
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+index 24e108becb760477cd78b5ecbd5619d94743647d..b54bab45a7b29c902277b172e7ead0365b7f6088 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+@@ -161,4 +161,9 @@ public class MecanumDriveWheelSpeeds {
+         rearLeftMetersPerSecond,
+         rearRightMetersPerSecond);
+   }
++
++  @Deprecated
++  public void normalize(double attainableMaxSpeedMetersPerSecond) {
++    desaturate(attainableMaxSpeedMetersPerSecond);
++  }
+ }

@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 03:42:50 -0400
+Subject: [PATCH 06/11] Remove linear system id stuff
+
+---
+ .../controller/SimpleMotorFeedforward.java    | 22 -------------------
+ 1 file changed, 22 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/SimpleMotorFeedforward.java b/wpimath/src/main/java/edu/wpi/first/math/controller/SimpleMotorFeedforward.java
+index eeb76db31964a633f1e82cd23644726251ad3d95..44f618391ca7c47c08b371d9fb2aff603290570d 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/SimpleMotorFeedforward.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/SimpleMotorFeedforward.java
+@@ -4,10 +4,6 @@
+ 
+ package edu.wpi.first.math.controller;
+ 
+-import edu.wpi.first.math.MatBuilder;
+-import edu.wpi.first.math.Nat;
+-import edu.wpi.first.math.system.plant.LinearSystemId;
+-
+ /** A helper class that computes feedforward outputs for a simple permanent-magnet DC motor. */
+ public class SimpleMotorFeedforward {
+   /** The static gain. */
+@@ -63,24 +59,6 @@ public class SimpleMotorFeedforward {
+     return ks * Math.signum(velocity) + kv * velocity + ka * acceleration;
+   }
+ 
+-  /**
+-   * Calculates the feedforward from the gains and setpoints.
+-   *
+-   * @param currentVelocity The current velocity setpoint.
+-   * @param nextVelocity The next velocity setpoint.
+-   * @param dtSeconds Time between velocity setpoints in seconds.
+-   * @return The computed feedforward.
+-   */
+-  public double calculate(double currentVelocity, double nextVelocity, double dtSeconds) {
+-    var plant = LinearSystemId.identifyVelocitySystem(this.kv, this.ka);
+-    var feedforward = new LinearPlantInversionFeedforward<>(plant, dtSeconds);
+-
+-    var r = MatBuilder.fill(Nat.N1(), Nat.N1(), currentVelocity);
+-    var nextR = MatBuilder.fill(Nat.N1(), Nat.N1(), nextVelocity);
+-
+-    return ks * Math.signum(currentVelocity) + feedforward.calculate(r, nextR).get(0, 0);
+-  }
+-
+   // Rearranging the main equation from the calculate() method yields the
+   // formulas for the methods below:
+ 

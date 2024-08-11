@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 04:11:48 -0400
+Subject: [PATCH 07/11] Backport pidcontroller
+
+---
+ .../controller/HolonomicDriveController.java  |  1 -
+ .../controller/ProfiledPIDController.java     | 74 +++----------------
+ 2 files changed, 10 insertions(+), 65 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
+index 68365b05804ac27643624edd1b35b94a581e441c..ec3a8e87d5a84fc67b0f5a00b6aa14a01588d749 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
+@@ -47,7 +47,6 @@ public class HolonomicDriveController {
+     m_xController = xController;
+     m_yController = yController;
+     m_thetaController = thetaController;
+-    m_thetaController.enableContinuousInput(0, Units.degreesToRadians(360.0));
+   }
+ 
+   /**
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+index fd0256a7c33d4b316b971556e2c6826ca3201b24..c25afcb9cc7072f92f74fa2c22b30b4e5b0f7717 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+@@ -58,7 +58,7 @@ public class ProfiledPIDController {
+   @SuppressWarnings("this-escape")
+   public ProfiledPIDController(
+       double Kp, double Ki, double Kd, TrapezoidProfile.Constraints constraints, double period) {
+-    m_controller = new PIDController(Kp, Ki, Kd, period);
++    m_controller = new PIDController(Kp, Ki, Kd);
+     m_constraints = constraints;
+     m_profile = new TrapezoidProfile(m_constraints);
+     instances++;
+@@ -106,20 +106,6 @@ public class ProfiledPIDController {
+     m_controller.setD(Kd);
+   }
+ 
+-  /**
+-   * Sets the IZone range. When the absolute value of the position error is greater than IZone, the
+-   * total accumulated error will reset to zero, disabling integral gain until the absolute value of
+-   * the position error is less than IZone. This is used to prevent integral windup. Must be
+-   * non-negative. Passing a value of zero will effectively disable integral gain. Passing a value
+-   * of {@link Double#POSITIVE_INFINITY} disables IZone functionality.
+-   *
+-   * @param iZone Maximum magnitude of error to allow integral control.
+-   * @throws IllegalArgumentException if iZone &lt;= 0
+-   */
+-  public void setIZone(double iZone) {
+-    m_controller.setIZone(iZone);
+-  }
+-
+   /**
+    * Gets the proportional coefficient.
+    *
+@@ -147,15 +133,6 @@ public class ProfiledPIDController {
+     return m_controller.getD();
+   }
+ 
+-  /**
+-   * Get the IZone range.
+-   *
+-   * @return Maximum magnitude of error to allow integral control.
+-   */
+-  public double getIZone() {
+-    return m_controller.getIZone();
+-  }
+-
+   /**
+    * Gets the period of this controller.
+    *
+@@ -171,7 +148,7 @@ public class ProfiledPIDController {
+    * @return the position tolerance of the controller.
+    */
+   public double getPositionTolerance() {
+-    return m_controller.getPositionTolerance();
++    return m_controller.getTolerance()[0];
+   }
+ 
+   /**
+@@ -180,7 +157,7 @@ public class ProfiledPIDController {
+    * @return the velocity tolerance of the controller.
+    */
+   public double getVelocityTolerance() {
+-    return m_controller.getVelocityTolerance();
++    return m_controller.getTolerance()[1];
+   }
+ 
+   /**
+@@ -257,27 +234,7 @@ public class ProfiledPIDController {
+    * @return True if the error is within the tolerance of the error.
+    */
+   public boolean atSetpoint() {
+-    return m_controller.atSetpoint();
+-  }
+-
+-  /**
+-   * Enables continuous input.
+-   *
+-   * <p>Rather then using the max and min input range as constraints, it considers them to be the
+-   * same point and automatically calculates the shortest route to the setpoint.
+-   *
+-   * @param minimumInput The minimum value expected from the input.
+-   * @param maximumInput The maximum value expected from the input.
+-   */
+-  public void enableContinuousInput(double minimumInput, double maximumInput) {
+-    m_controller.enableContinuousInput(minimumInput, maximumInput);
+-    m_minimumInput = minimumInput;
+-    m_maximumInput = maximumInput;
+-  }
+-
+-  /** Disables continuous input. */
+-  public void disableContinuousInput() {
+-    m_controller.disableContinuousInput();
++    return m_controller.atSetPoint();
+   }
+ 
+   /**
+@@ -290,7 +247,7 @@ public class ProfiledPIDController {
+    * @param maximumIntegral The maximum value of the integrator.
+    */
+   public void setIntegratorRange(double minimumIntegral, double maximumIntegral) {
+-    m_controller.setIntegratorRange(minimumIntegral, maximumIntegral);
++    m_controller.setIntegrationBounds(minimumIntegral, maximumIntegral);
+   }
+ 
+   /**
+@@ -337,22 +294,6 @@ public class ProfiledPIDController {
+    * @return The controller's next output.
+    */
+   public double calculate(double measurement) {
+-    if (m_controller.isContinuousInputEnabled()) {
+-      // Get error which is the smallest distance between goal and measurement
+-      double errorBound = (m_maximumInput - m_minimumInput) / 2.0;
+-      double goalMinDistance =
+-          MathUtil.inputModulus(m_goal.position - measurement, -errorBound, errorBound);
+-      double setpointMinDistance =
+-          MathUtil.inputModulus(m_setpoint.position - measurement, -errorBound, errorBound);
+-
+-      // Recompute the profile goal with the smallest error, thus giving the shortest path. The goal
+-      // may be outside the input range after this operation, but that's OK because the controller
+-      // will still go there and report an error of zero. In other words, the setpoint only needs to
+-      // be offset from the measurement by the input range modulus; they don't need to be equal.
+-      m_goal.position = goalMinDistance + measurement;
+-      m_setpoint.position = setpointMinDistance + measurement;
+-    }
+-
+     m_setpoint = m_profile.calculate(getPeriod(), m_setpoint, m_goal);
+     return m_controller.calculate(measurement, m_setpoint.position);
+   }
+@@ -395,6 +336,11 @@ public class ProfiledPIDController {
+     return calculate(measurement, goal);
+   }
+ 
++  /** Reset the previous error, the integral term, and disable the controller. */
++  public void reset() {
++    m_controller.reset();
++  }
++
+   /**
+    * Reset the previous error and the integral term.
+    *

@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 04:24:28 -0400
+Subject: [PATCH 04/11] Remove sendable
+
+---
+ .../controller/ProfiledPIDController.java     | 25 +------------------
+ 1 file changed, 1 insertion(+), 24 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+index 0abed747766455491fa28029e03821e7ebb0f14f..fd0256a7c33d4b316b971556e2c6826ca3201b24 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+@@ -9,15 +9,12 @@ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.trajectory.TrapezoidProfile;
+-import edu.wpi.first.util.sendable.Sendable;
+-import edu.wpi.first.util.sendable.SendableBuilder;
+-import edu.wpi.first.util.sendable.SendableRegistry;
+ 
+ /**
+  * Implements a PID control loop whose setpoint is constrained by a trapezoid profile. Users should
+  * call reset() when they first start running the controller to avoid unwanted behavior.
+  */
+-public class ProfiledPIDController implements Sendable {
++public class ProfiledPIDController {
+   private static int instances;
+ 
+   private PIDController m_controller;
+@@ -66,7 +63,6 @@ public class ProfiledPIDController implements Sendable {
+     m_profile = new TrapezoidProfile(m_constraints);
+     instances++;
+ 
+-    SendableRegistry.add(this, "ProfiledPIDController", instances);
+     MathSharedStore.reportUsage(MathUsageId.kController_ProfiledPIDController, instances);
+   }
+ 
+@@ -428,23 +424,4 @@ public class ProfiledPIDController implements Sendable {
+   public void reset(double measuredPosition) {
+     reset(measuredPosition, 0.0);
+   }
+-
+-  @Override
+-  public void initSendable(SendableBuilder builder) {
+-    builder.setSmartDashboardType("ProfiledPIDController");
+-    builder.addDoubleProperty("p", this::getP, this::setP);
+-    builder.addDoubleProperty("i", this::getI, this::setI);
+-    builder.addDoubleProperty("d", this::getD, this::setD);
+-    builder.addDoubleProperty(
+-        "izone",
+-        this::getIZone,
+-        (double toSet) -> {
+-          try {
+-            setIZone(toSet);
+-          } catch (IllegalArgumentException e) {
+-            MathSharedStore.reportError("IZone must be a non-negative number!", e.getStackTrace());
+-          }
+-        });
+-    builder.addDoubleProperty("goal", () -> getGoal().position, this::setGoal);
+-  }
+ }

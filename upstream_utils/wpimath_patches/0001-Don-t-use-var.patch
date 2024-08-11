@@ -1,0 +1,2982 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 14:14:03 -0400
+Subject: [PATCH 01/11] Don't use var
+
+---
+ .../controller/HolonomicDriveController.java  | 10 +--
+ .../controller/ProfiledPIDController.java     |  1 +
+ .../math/controller/RamseteController.java    | 10 +--
+ .../edu/wpi/first/math/geometry/Pose2d.java   | 18 ++---
+ .../wpi/first/math/geometry/Rotation2d.java   |  2 +-
+ .../TimeInterpolatableBuffer.java             |  9 +--
+ .../first/math/kinematics/ChassisSpeeds.java  |  9 +--
+ .../kinematics/MecanumDriveKinematics.java    | 24 +++----
+ .../wpi/first/math/kinematics/Odometry.java   |  7 +-
+ .../kinematics/SwerveDriveKinematics.java     | 24 +++----
+ .../kinematics/SwerveDriveWheelPositions.java |  2 +-
+ .../math/kinematics/SwerveModuleState.java    |  2 +-
+ .../first/math/spline/CubicHermiteSpline.java | 10 +--
+ .../math/spline/QuinticHermiteSpline.java     | 10 +--
+ .../edu/wpi/first/math/spline/Spline.java     |  2 +-
+ .../wpi/first/math/spline/SplineHelper.java   | 22 +++----
+ .../math/spline/SplineParameterizer.java      |  8 ++-
+ .../wpi/first/math/trajectory/Trajectory.java | 10 +--
+ .../math/trajectory/TrajectoryGenerator.java  | 30 ++++-----
+ .../trajectory/TrajectoryParameterizer.java   | 20 +++---
+ ...DifferentialDriveKinematicsConstraint.java |  5 +-
+ .../DifferentialDriveVoltageConstraint.java   |  3 +-
+ .../MecanumDriveKinematicsConstraint.java     | 11 ++--
+ .../SwerveDriveKinematicsConstraint.java      | 11 ++--
+ .../HolonomicDriveControllerTest.java         |  3 +-
+ .../controller/RamseteControllerTest.java     | 26 ++++----
+ .../wpi/first/math/geometry/Pose2dTest.java   | 56 ++++++++--------
+ .../first/math/geometry/Rotation2dTest.java   | 36 +++++-----
+ .../first/math/geometry/Transform2dTest.java  | 18 ++---
+ .../math/geometry/Translation2dTest.java      | 58 ++++++++---------
+ .../wpi/first/math/geometry/Twist2dTest.java  | 36 +++++-----
+ .../math/kinematics/ChassisSpeedsTest.java    | 36 +++++-----
+ .../DifferentialDriveKinematicsTest.java      | 24 +++----
+ .../DifferentialDriveOdometryTest.java        |  2 +-
+ .../MecanumDriveKinematicsTest.java           | 65 ++++++++++---------
+ .../kinematics/MecanumDriveOdometryTest.java  | 57 ++++++++--------
+ .../kinematics/SwerveDriveKinematicsTest.java | 37 ++++++-----
+ .../kinematics/SwerveDriveOdometryTest.java   | 43 ++++++------
+ .../kinematics/SwerveModuleStateTest.java     | 24 +++----
+ .../math/spline/CubicHermiteSplineTest.java   | 31 ++++-----
+ .../math/spline/QuinticHermiteSplineTest.java | 11 ++--
+ ...CentripetalAccelerationConstraintTest.java | 12 ++--
+ ...erentialDriveKinematicsConstraintTest.java | 17 ++---
+ ...ifferentialDriveVoltageConstraintTest.java | 27 ++++----
+ .../trajectory/TrajectoryConcatenateTest.java | 10 +--
+ .../trajectory/TrajectoryGeneratorTest.java   | 10 +--
+ .../trajectory/TrajectoryTransformTest.java   | 20 +++---
+ 47 files changed, 473 insertions(+), 446 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
+index 87148a45dbe079bb4b606036bd726f3573a6acd9..68365b05804ac27643624edd1b35b94a581e441c 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/HolonomicDriveController.java
+@@ -4,8 +4,10 @@
+ 
+ package edu.wpi.first.math.controller;
+ 
++import edu.wpi.first.math.controller.PIDController;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
++import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.util.Units;
+@@ -54,10 +56,10 @@ public class HolonomicDriveController {
+    * @return True if the pose error is within tolerance of the reference.
+    */
+   public boolean atReference() {
+-    final var eTranslate = m_poseError.getTranslation();
+-    final var eRotate = m_rotationError;
+-    final var tolTranslate = m_poseTolerance.getTranslation();
+-    final var tolRotate = m_poseTolerance.getRotation();
++    final Translation2d eTranslate = m_poseError.getTranslation();
++    final Rotation2d eRotate = m_rotationError;
++    final Translation2d tolTranslate = m_poseTolerance.getTranslation();
++    final Rotation2d tolRotate = m_poseTolerance.getRotation();
+     return Math.abs(eTranslate.getX()) < tolTranslate.getX()
+         && Math.abs(eTranslate.getY()) < tolTranslate.getY()
+         && Math.abs(eRotate.getRadians()) < tolRotate.getRadians();
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+index e69c73f12c5b9a04283e2819709e7527f169826d..0abed747766455491fa28029e03821e7ebb0f14f 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/ProfiledPIDController.java
+@@ -4,6 +4,7 @@
+ 
+ package edu.wpi.first.math.controller;
+ 
++import edu.wpi.first.math.controller.PIDController;
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.MathUtil;
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/RamseteController.java b/wpimath/src/main/java/edu/wpi/first/math/controller/RamseteController.java
+index 5683987bc6da88b8ea0f53ea4002abc343616e02..8fe8652299eab92937ba337851c97ab62c313881 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/RamseteController.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/RamseteController.java
+@@ -5,6 +5,8 @@
+ package edu.wpi.first.math.controller;
+ 
+ import edu.wpi.first.math.geometry.Pose2d;
++import edu.wpi.first.math.geometry.Rotation2d;
++import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.trajectory.Trajectory;
+ 
+@@ -68,10 +70,10 @@ public class RamseteController {
+    * @return True if the pose error is within tolerance of the reference.
+    */
+   public boolean atReference() {
+-    final var eTranslate = m_poseError.getTranslation();
+-    final var eRotate = m_poseError.getRotation();
+-    final var tolTranslate = m_poseTolerance.getTranslation();
+-    final var tolRotate = m_poseTolerance.getRotation();
++    final Translation2d eTranslate = m_poseError.getTranslation();
++    final Rotation2d eRotate = m_poseError.getRotation();
++    final Translation2d tolTranslate = m_poseTolerance.getTranslation();
++    final Rotation2d tolRotate = m_poseTolerance.getRotation();
+     return Math.abs(eTranslate.getX()) < tolTranslate.getX()
+         && Math.abs(eTranslate.getY()) < tolTranslate.getY()
+         && Math.abs(eRotate.getRadians()) < tolRotate.getRadians();
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+index 97e8307999339a22d69ec9c73cadcbb6db8c2c03..f0f53952783dfd22fdef45a71a31ca161a1c132d 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+@@ -96,7 +96,7 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+    * @return The transform that maps the other pose to the current pose.
+    */
+   public Transform2d minus(Pose2d other) {
+-    final var pose = this.relativeTo(other);
++    final Pose2d pose = this.relativeTo(other);
+     return new Transform2d(pose.getTranslation(), pose.getRotation());
+   }
+ 
+@@ -192,7 +192,7 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+    * @return The current pose relative to the new origin pose.
+    */
+   public Pose2d relativeTo(Pose2d other) {
+-    var transform = new Transform2d(other, this);
++    Transform2d transform = new Transform2d(other, this);
+     return new Pose2d(transform.getTranslation(), transform.getRotation());
+   }
+ 
+@@ -233,7 +233,7 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+       s = sinTheta / dtheta;
+       c = (1 - cosTheta) / dtheta;
+     }
+-    var transform =
++    Transform2d transform =
+         new Transform2d(
+             new Translation2d(dx * s - dy * c, dx * c + dy * s),
+             new Rotation2d(cosTheta, sinTheta));
+@@ -249,11 +249,11 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+    * @return The twist that maps this to end.
+    */
+   public Twist2d log(Pose2d end) {
+-    final var transform = end.relativeTo(this);
+-    final var dtheta = transform.getRotation().getRadians();
+-    final var halfDtheta = dtheta / 2.0;
++    final Pose2d transform = end.relativeTo(this);
++    final double dtheta = transform.getRotation().getRadians();
++    final double halfDtheta = dtheta / 2.0;
+ 
+-    final var cosMinusOne = transform.getRotation().getCos() - 1;
++    final double cosMinusOne = transform.getRotation().getCos() - 1;
+ 
+     double halfThetaByTanOfHalfDtheta;
+     if (Math.abs(cosMinusOne) < 1E-9) {
+@@ -320,8 +320,8 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+     } else if (t >= 1) {
+       return endValue;
+     } else {
+-      var twist = this.log(endValue);
+-      var scaledTwist = new Twist2d(twist.dx * t, twist.dy * t, twist.dtheta * t);
++      Twist2d twist = this.log(endValue);
++      Twist2d scaledTwist = new Twist2d(twist.dx * t, twist.dy * t, twist.dtheta * t);
+       return this.exp(scaledTwist);
+     }
+   }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+index 1106a103a52c48046ba82b565bc9da7efa8b1ab1..62f7daa42dc4c2545b8ae38ed1f9a5a89e18582c 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+@@ -259,7 +259,7 @@ public class Rotation2d
+   @Override
+   public boolean equals(Object obj) {
+     if (obj instanceof Rotation2d) {
+-      var other = (Rotation2d) obj;
++      Rotation2d other = (Rotation2d) obj;
+       return Math.hypot(m_cos - other.m_cos, m_sin - other.m_sin) < 1E-9;
+     }
+     return false;
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/interpolation/TimeInterpolatableBuffer.java b/wpimath/src/main/java/edu/wpi/first/math/interpolation/TimeInterpolatableBuffer.java
+index f9f20c373256a43ee0691bd944bd26a250da4d37..e7c93085ef20518b634459378c4bf2809875e886 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/interpolation/TimeInterpolatableBuffer.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/interpolation/TimeInterpolatableBuffer.java
+@@ -5,6 +5,7 @@
+ package edu.wpi.first.math.interpolation;
+ 
+ import edu.wpi.first.math.MathUtil;
++import java.util.Map;
+ import java.util.NavigableMap;
+ import java.util.Optional;
+ import java.util.TreeMap;
+@@ -80,7 +81,7 @@ public final class TimeInterpolatableBuffer<T> {
+    */
+   private void cleanUp(double time) {
+     while (!m_pastSnapshots.isEmpty()) {
+-      var entry = m_pastSnapshots.firstEntry();
++      Map.Entry<Double, T> entry = m_pastSnapshots.firstEntry();
+       if (time - entry.getKey() >= m_historySize) {
+         m_pastSnapshots.remove(entry.getKey());
+       } else {
+@@ -106,13 +107,13 @@ public final class TimeInterpolatableBuffer<T> {
+     }
+ 
+     // Special case for when the requested time is the same as a sample
+-    var nowEntry = m_pastSnapshots.get(timeSeconds);
++    T nowEntry = m_pastSnapshots.get(timeSeconds);
+     if (nowEntry != null) {
+       return Optional.of(nowEntry);
+     }
+ 
+-    var topBound = m_pastSnapshots.ceilingEntry(timeSeconds);
+-    var bottomBound = m_pastSnapshots.floorEntry(timeSeconds);
++    Map.Entry<Double, T> topBound = m_pastSnapshots.ceilingEntry(timeSeconds);
++    Map.Entry<Double, T> bottomBound = m_pastSnapshots.floorEntry(timeSeconds);
+ 
+     // Return null if neither sample exists, and the opposite bound if the other is null
+     if (topBound == null && bottomBound == null) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+index 33a5edca43e38d534c94c9795d12f2ce4de1aebf..36e4738231b82f373190c23fd30c6033eeccfef0 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+@@ -11,6 +11,7 @@ import static edu.wpi.first.units.Units.Seconds;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ import edu.wpi.first.math.kinematics.proto.ChassisSpeedsProto;
+ import edu.wpi.first.math.kinematics.struct.ChassisSpeedsStruct;
+ import edu.wpi.first.units.Angle;
+@@ -99,12 +100,12 @@ public class ChassisSpeeds implements ProtobufSerializable, StructSerializable {
+       double vyMetersPerSecond,
+       double omegaRadiansPerSecond,
+       double dtSeconds) {
+-    var desiredDeltaPose =
++    Pose2d desiredDeltaPose =
+         new Pose2d(
+             vxMetersPerSecond * dtSeconds,
+             vyMetersPerSecond * dtSeconds,
+             new Rotation2d(omegaRadiansPerSecond * dtSeconds));
+-    var twist = new Pose2d().log(desiredDeltaPose);
++    Twist2d twist = new Pose2d().log(desiredDeltaPose);
+     return new ChassisSpeeds(twist.dx / dtSeconds, twist.dy / dtSeconds, twist.dtheta / dtSeconds);
+   }
+ 
+@@ -177,7 +178,7 @@ public class ChassisSpeeds implements ProtobufSerializable, StructSerializable {
+       double omegaRadiansPerSecond,
+       Rotation2d robotAngle) {
+     // CW rotation into chassis frame
+-    var rotated =
++    Translation2d rotated =
+         new Translation2d(vxMetersPerSecond, vyMetersPerSecond).rotateBy(robotAngle.unaryMinus());
+     return new ChassisSpeeds(rotated.getX(), rotated.getY(), omegaRadiansPerSecond);
+   }
+@@ -246,7 +247,7 @@ public class ChassisSpeeds implements ProtobufSerializable, StructSerializable {
+       double omegaRadiansPerSecond,
+       Rotation2d robotAngle) {
+     // CCW rotation out of chassis frame
+-    var rotated = new Translation2d(vxMetersPerSecond, vyMetersPerSecond).rotateBy(robotAngle);
++    Translation2d rotated = new Translation2d(vxMetersPerSecond, vyMetersPerSecond).rotateBy(robotAngle);
+     return new ChassisSpeeds(rotated.getX(), rotated.getY(), omegaRadiansPerSecond);
+   }
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
+index 44dbb6b25f0628e627f09f28d6362435a72ad353..6c8056f9bab34ac15b8faba28e3b84cb541db2b8 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
+@@ -106,16 +106,16 @@ public class MecanumDriveKinematics
+       ChassisSpeeds chassisSpeeds, Translation2d centerOfRotationMeters) {
+     // We have a new center of rotation. We need to compute the matrix again.
+     if (!centerOfRotationMeters.equals(m_prevCoR)) {
+-      var fl = m_frontLeftWheelMeters.minus(centerOfRotationMeters);
+-      var fr = m_frontRightWheelMeters.minus(centerOfRotationMeters);
+-      var rl = m_rearLeftWheelMeters.minus(centerOfRotationMeters);
+-      var rr = m_rearRightWheelMeters.minus(centerOfRotationMeters);
++      Translation2d fl = m_frontLeftWheelMeters.minus(centerOfRotationMeters);
++      Translation2d fr = m_frontRightWheelMeters.minus(centerOfRotationMeters);
++      Translation2d rl = m_rearLeftWheelMeters.minus(centerOfRotationMeters);
++      Translation2d rr = m_rearRightWheelMeters.minus(centerOfRotationMeters);
+ 
+       setInverseKinematics(fl, fr, rl, rr);
+       m_prevCoR = centerOfRotationMeters;
+     }
+ 
+-    var chassisSpeedsVector = new SimpleMatrix(3, 1);
++    SimpleMatrix chassisSpeedsVector = new SimpleMatrix(3, 1);
+     chassisSpeedsVector.setColumn(
+         0,
+         0,
+@@ -123,7 +123,7 @@ public class MecanumDriveKinematics
+         chassisSpeeds.vyMetersPerSecond,
+         chassisSpeeds.omegaRadiansPerSecond);
+ 
+-    var wheelsVector = m_inverseKinematics.mult(chassisSpeedsVector);
++    SimpleMatrix wheelsVector = m_inverseKinematics.mult(chassisSpeedsVector);
+     return new MecanumDriveWheelSpeeds(
+         wheelsVector.get(0, 0),
+         wheelsVector.get(1, 0),
+@@ -153,7 +153,7 @@ public class MecanumDriveKinematics
+    */
+   @Override
+   public ChassisSpeeds toChassisSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {
+-    var wheelSpeedsVector = new SimpleMatrix(4, 1);
++    SimpleMatrix wheelSpeedsVector = new SimpleMatrix(4, 1);
+     wheelSpeedsVector.setColumn(
+         0,
+         0,
+@@ -161,7 +161,7 @@ public class MecanumDriveKinematics
+         wheelSpeeds.frontRightMetersPerSecond,
+         wheelSpeeds.rearLeftMetersPerSecond,
+         wheelSpeeds.rearRightMetersPerSecond);
+-    var chassisSpeedsVector = m_forwardKinematics.mult(wheelSpeedsVector);
++    SimpleMatrix chassisSpeedsVector = m_forwardKinematics.mult(wheelSpeedsVector);
+ 
+     return new ChassisSpeeds(
+         chassisSpeedsVector.get(0, 0),
+@@ -171,7 +171,7 @@ public class MecanumDriveKinematics
+ 
+   @Override
+   public Twist2d toTwist2d(MecanumDriveWheelPositions start, MecanumDriveWheelPositions end) {
+-    var wheelDeltasVector = new SimpleMatrix(4, 1);
++    SimpleMatrix wheelDeltasVector = new SimpleMatrix(4, 1);
+     wheelDeltasVector.setColumn(
+         0,
+         0,
+@@ -179,7 +179,7 @@ public class MecanumDriveKinematics
+         end.frontRightMeters - start.frontRightMeters,
+         end.rearLeftMeters - start.rearLeftMeters,
+         end.rearRightMeters - start.rearRightMeters);
+-    var twist = m_forwardKinematics.mult(wheelDeltasVector);
++    SimpleMatrix twist = m_forwardKinematics.mult(wheelDeltasVector);
+     return new Twist2d(twist.get(0, 0), twist.get(1, 0), twist.get(2, 0));
+   }
+ 
+@@ -192,7 +192,7 @@ public class MecanumDriveKinematics
+    * @return The resulting Twist2d.
+    */
+   public Twist2d toTwist2d(MecanumDriveWheelPositions wheelDeltas) {
+-    var wheelDeltasVector = new SimpleMatrix(4, 1);
++    SimpleMatrix wheelDeltasVector = new SimpleMatrix(4, 1);
+     wheelDeltasVector.setColumn(
+         0,
+         0,
+@@ -200,7 +200,7 @@ public class MecanumDriveKinematics
+         wheelDeltas.frontRightMeters,
+         wheelDeltas.rearLeftMeters,
+         wheelDeltas.rearRightMeters);
+-    var twist = m_forwardKinematics.mult(wheelDeltasVector);
++    SimpleMatrix twist = m_forwardKinematics.mult(wheelDeltasVector);
+     return new Twist2d(twist.get(0, 0), twist.get(1, 0), twist.get(2, 0));
+   }
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/Odometry.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/Odometry.java
+index 427c92d8a18c17aa501d5263d1f24c30d6505f27..4dfe9fb31dbcffbb8a778f7d400bcdf0e2db5087 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/Odometry.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/Odometry.java
+@@ -6,6 +6,7 @@ package edu.wpi.first.math.kinematics;
+ 
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ 
+ /**
+  * Class for odometry. Robot code should not use this directly- Instead, use the particular type for
+@@ -83,12 +84,12 @@ public class Odometry<T extends WheelPositions<T>> {
+    * @return The new pose of the robot.
+    */
+   public Pose2d update(Rotation2d gyroAngle, T wheelPositions) {
+-    var angle = gyroAngle.plus(m_gyroOffset);
++    Rotation2d angle = gyroAngle.plus(m_gyroOffset);
+ 
+-    var twist = m_kinematics.toTwist2d(m_previousWheelPositions, wheelPositions);
++    Twist2d twist = m_kinematics.toTwist2d(m_previousWheelPositions, wheelPositions);
+     twist.dtheta = angle.minus(m_previousAngle).getRadians();
+ 
+-    var newPose = m_poseMeters.exp(twist);
++    Pose2d newPose = m_poseMeters.exp(twist);
+ 
+     m_previousWheelPositions = wheelPositions.copy();
+     m_previousAngle = angle;
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
+index 6648343f8970114b5931a2f52889e8305c41369e..badd76569133e95a22ad1be3994b3862a0918fa4 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
+@@ -134,7 +134,7 @@ public class SwerveDriveKinematics
+    */
+   public SwerveModuleState[] toSwerveModuleStates(
+       ChassisSpeeds chassisSpeeds, Translation2d centerOfRotationMeters) {
+-    var moduleStates = new SwerveModuleState[m_numModules];
++    SwerveModuleState[] moduleStates = new SwerveModuleState[m_numModules];
+ 
+     if (chassisSpeeds.vxMetersPerSecond == 0.0
+         && chassisSpeeds.vyMetersPerSecond == 0.0
+@@ -164,7 +164,7 @@ public class SwerveDriveKinematics
+       m_prevCoR = centerOfRotationMeters;
+     }
+ 
+-    var chassisSpeedsVector = new SimpleMatrix(3, 1);
++    SimpleMatrix chassisSpeedsVector = new SimpleMatrix(3, 1);
+     chassisSpeedsVector.setColumn(
+         0,
+         0,
+@@ -172,7 +172,7 @@ public class SwerveDriveKinematics
+         chassisSpeeds.vyMetersPerSecond,
+         chassisSpeeds.omegaRadiansPerSecond);
+ 
+-    var moduleStatesMatrix = m_inverseKinematics.mult(chassisSpeedsVector);
++    SimpleMatrix moduleStatesMatrix = m_inverseKinematics.mult(chassisSpeedsVector);
+ 
+     for (int i = 0; i < m_numModules; i++) {
+       double x = moduleStatesMatrix.get(i * 2, 0);
+@@ -220,15 +220,15 @@ public class SwerveDriveKinematics
+           "Number of modules is not consistent with number of module locations provided in "
+               + "constructor");
+     }
+-    var moduleStatesMatrix = new SimpleMatrix(m_numModules * 2, 1);
++    SimpleMatrix moduleStatesMatrix = new SimpleMatrix(m_numModules * 2, 1);
+ 
+     for (int i = 0; i < m_numModules; i++) {
+-      var module = moduleStates[i];
++      SwerveModuleState module = moduleStates[i];
+       moduleStatesMatrix.set(i * 2, 0, module.speedMetersPerSecond * module.angle.getCos());
+       moduleStatesMatrix.set(i * 2 + 1, module.speedMetersPerSecond * module.angle.getSin());
+     }
+ 
+-    var chassisSpeedsVector = m_forwardKinematics.mult(moduleStatesMatrix);
++    SimpleMatrix chassisSpeedsVector = m_forwardKinematics.mult(moduleStatesMatrix);
+     return new ChassisSpeeds(
+         chassisSpeedsVector.get(0, 0),
+         chassisSpeedsVector.get(1, 0),
+@@ -256,15 +256,15 @@ public class SwerveDriveKinematics
+           "Number of modules is not consistent with number of module locations provided in "
+               + "constructor");
+     }
+-    var moduleDeltaMatrix = new SimpleMatrix(m_numModules * 2, 1);
++    SimpleMatrix moduleDeltaMatrix = new SimpleMatrix(m_numModules * 2, 1);
+ 
+     for (int i = 0; i < m_numModules; i++) {
+-      var module = moduleDeltas[i];
++      SwerveModulePosition module = moduleDeltas[i];
+       moduleDeltaMatrix.set(i * 2, 0, module.distanceMeters * module.angle.getCos());
+       moduleDeltaMatrix.set(i * 2 + 1, module.distanceMeters * module.angle.getSin());
+     }
+ 
+-    var chassisDeltaVector = m_forwardKinematics.mult(moduleDeltaMatrix);
++    SimpleMatrix chassisDeltaVector = m_forwardKinematics.mult(moduleDeltaMatrix);
+     return new Twist2d(
+         chassisDeltaVector.get(0, 0), chassisDeltaVector.get(1, 0), chassisDeltaVector.get(2, 0));
+   }
+@@ -274,10 +274,10 @@ public class SwerveDriveKinematics
+     if (start.positions.length != end.positions.length) {
+       throw new IllegalArgumentException("Inconsistent number of modules!");
+     }
+-    var newPositions = new SwerveModulePosition[start.positions.length];
++    SwerveModulePosition[] newPositions = new SwerveModulePosition[start.positions.length];
+     for (int i = 0; i < start.positions.length; i++) {
+-      var startModule = start.positions[i];
+-      var endModule = end.positions[i];
++      SwerveModulePosition startModule = start.positions[i];
++      SwerveModulePosition endModule = end.positions[i];
+       newPositions[i] =
+           new SwerveModulePosition(
+               endModule.distanceMeters - startModule.distanceMeters, endModule.angle);
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveWheelPositions.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveWheelPositions.java
+index 5d0f0af113aee27c1c395bc2f3866704d4550ee1..8d96ab7d45707521405bc8865d6c80cbee1429bc 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveWheelPositions.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveWheelPositions.java
+@@ -54,7 +54,7 @@ public class SwerveDriveWheelPositions implements WheelPositions<SwerveDriveWhee
+     if (endValue.positions.length != positions.length) {
+       throw new IllegalArgumentException("Inconsistent number of modules!");
+     }
+-    var newPositions = new SwerveModulePosition[positions.length];
++    SwerveModulePosition[] newPositions = new SwerveModulePosition[positions.length];
+     for (int i = 0; i < positions.length; i++) {
+       newPositions[i] = positions[i].interpolate(endValue.positions[i], t);
+     }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+index 9f1604a0d676a84d32a7c17e26d1e89efc9fc61d..a0258a315e907b229529207b529149a03f678d0f 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+@@ -99,7 +99,7 @@ public class SwerveModuleState
+    */
+   public static SwerveModuleState optimize(
+       SwerveModuleState desiredState, Rotation2d currentAngle) {
+-    var delta = desiredState.angle.minus(currentAngle);
++    Rotation2d delta = desiredState.angle.minus(currentAngle);
+     if (Math.abs(delta.getDegrees()) > 90.0) {
+       return new SwerveModuleState(
+           -desiredState.speedMetersPerSecond,
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/spline/CubicHermiteSpline.java b/wpimath/src/main/java/edu/wpi/first/math/spline/CubicHermiteSpline.java
+index 72108a5deb5c3e157c3f632093d5c41fae59fb2d..a5357b6470762333254ce8cb8d6ca48e747e8a18 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/spline/CubicHermiteSpline.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/spline/CubicHermiteSpline.java
+@@ -33,12 +33,12 @@ public class CubicHermiteSpline extends Spline {
+     // Populate the coefficients for the actual spline equations.
+     // Row 0 is x coefficients
+     // Row 1 is y coefficients
+-    final var hermite = makeHermiteBasis();
+-    final var x = getControlVectorFromArrays(xInitialControlVector, xFinalControlVector);
+-    final var y = getControlVectorFromArrays(yInitialControlVector, yFinalControlVector);
++    final SimpleMatrix hermite = makeHermiteBasis();
++    final SimpleMatrix x = getControlVectorFromArrays(xInitialControlVector, xFinalControlVector);
++    final SimpleMatrix y = getControlVectorFromArrays(yInitialControlVector, yFinalControlVector);
+ 
+-    final var xCoeffs = (hermite.mult(x)).transpose();
+-    final var yCoeffs = (hermite.mult(y)).transpose();
++    final SimpleMatrix xCoeffs = (hermite.mult(x)).transpose();
++    final SimpleMatrix yCoeffs = (hermite.mult(y)).transpose();
+ 
+     m_coefficients = new SimpleMatrix(6, 4);
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/spline/QuinticHermiteSpline.java b/wpimath/src/main/java/edu/wpi/first/math/spline/QuinticHermiteSpline.java
+index 5d38bef60a7e7dd7c0c57f565943b8ce5b071647..76f3366525fcef5bc78ecc809322d25f02611d06 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/spline/QuinticHermiteSpline.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/spline/QuinticHermiteSpline.java
+@@ -33,12 +33,12 @@ public class QuinticHermiteSpline extends Spline {
+     // Populate the coefficients for the actual spline equations.
+     // Row 0 is x coefficients
+     // Row 1 is y coefficients
+-    final var hermite = makeHermiteBasis();
+-    final var x = getControlVectorFromArrays(xInitialControlVector, xFinalControlVector);
+-    final var y = getControlVectorFromArrays(yInitialControlVector, yFinalControlVector);
++    final SimpleMatrix hermite = makeHermiteBasis();
++    final SimpleMatrix x = getControlVectorFromArrays(xInitialControlVector, xFinalControlVector);
++    final SimpleMatrix y = getControlVectorFromArrays(yInitialControlVector, yFinalControlVector);
+ 
+-    final var xCoeffs = (hermite.mult(x)).transpose();
+-    final var yCoeffs = (hermite.mult(y)).transpose();
++    final SimpleMatrix xCoeffs = (hermite.mult(x)).transpose();
++    final SimpleMatrix yCoeffs = (hermite.mult(y)).transpose();
+ 
+     m_coefficients = new SimpleMatrix(6, 6);
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/spline/Spline.java b/wpimath/src/main/java/edu/wpi/first/math/spline/Spline.java
+index dc6c5e69969a639bfaa312063c684e3794125314..0e05906dd9da93814b07f8b57e8186dbbbedd103 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/spline/Spline.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/spline/Spline.java
+@@ -51,7 +51,7 @@ public abstract class Spline {
+    */
+   public PoseWithCurvature getPoint(double t) {
+     SimpleMatrix polynomialBases = new SimpleMatrix(m_degree + 1, 1);
+-    final var coefficients = getCoefficients();
++    final SimpleMatrix coefficients = getCoefficients();
+ 
+     // Populate the polynomial bases.
+     for (int i = 0; i <= m_degree; i++) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/spline/SplineHelper.java b/wpimath/src/main/java/edu/wpi/first/math/spline/SplineHelper.java
+index 3ba271440396b0d2ade7bed84ee9e9cd4f706876..a0382f0acad7b77545a1b308192f10b987f492f1 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/spline/SplineHelper.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/spline/SplineHelper.java
+@@ -53,14 +53,14 @@ public final class SplineHelper {
+   public static QuinticHermiteSpline[] getQuinticSplinesFromWaypoints(List<Pose2d> waypoints) {
+     QuinticHermiteSpline[] splines = new QuinticHermiteSpline[waypoints.size() - 1];
+     for (int i = 0; i < waypoints.size() - 1; ++i) {
+-      var p0 = waypoints.get(i);
+-      var p1 = waypoints.get(i + 1);
++      Pose2d p0 = waypoints.get(i);
++      Pose2d p1 = waypoints.get(i + 1);
+ 
+       // This just makes the splines look better.
+-      final var scalar = 1.2 * p0.getTranslation().getDistance(p1.getTranslation());
++      final double scalar = 1.2 * p0.getTranslation().getDistance(p1.getTranslation());
+ 
+-      var controlVecA = getQuinticControlVector(scalar, p0);
+-      var controlVecB = getQuinticControlVector(scalar, p1);
++      Spline.ControlVector controlVecA = getQuinticControlVector(scalar, p0);
++      Spline.ControlVector controlVecB = getQuinticControlVector(scalar, p1);
+ 
+       splines[i] =
+           new QuinticHermiteSpline(controlVecA.x, controlVecB.x, controlVecA.y, controlVecB.y);
+@@ -172,8 +172,8 @@ public final class SplineHelper {
+                 new double[] {newWaypts[i + 1].getY(), newFy[i + 1]});
+       }
+     } else if (waypoints.length == 1) {
+-      final var xDeriv = (3 * (xFinal[0] - xInitial[0]) - xFinal[1] - xInitial[1]) / 4.0;
+-      final var yDeriv = (3 * (yFinal[0] - yInitial[0]) - yFinal[1] - yInitial[1]) / 4.0;
++      final double xDeriv = (3 * (xFinal[0] - xInitial[0]) - xFinal[1] - xInitial[1]) / 4.0;
++      final double yDeriv = (3 * (yFinal[0] - yInitial[0]) - yFinal[1] - yInitial[1]) / 4.0;
+ 
+       double[] midXControlVector = {waypoints[0].getX(), xDeriv};
+       double[] midYControlVector = {waypoints[0].getY(), yDeriv};
+@@ -207,10 +207,10 @@ public final class SplineHelper {
+       Spline.ControlVector[] controlVectors) {
+     QuinticHermiteSpline[] splines = new QuinticHermiteSpline[controlVectors.length - 1];
+     for (int i = 0; i < controlVectors.length - 1; i++) {
+-      var xInitial = controlVectors[i].x;
+-      var xFinal = controlVectors[i + 1].x;
+-      var yInitial = controlVectors[i].y;
+-      var yFinal = controlVectors[i + 1].y;
++      double[] xInitial = controlVectors[i].x;
++      double[] xFinal = controlVectors[i + 1].x;
++      double[] yInitial = controlVectors[i].y;
++      double[] yFinal = controlVectors[i + 1].y;
+       splines[i] =
+           new QuinticHermiteSpline(
+               xInitial, xFinal,
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/spline/SplineParameterizer.java b/wpimath/src/main/java/edu/wpi/first/math/spline/SplineParameterizer.java
+index 5cf742b3da4c573200bf463aa1c7b80699a6fbe7..cc5da531b0fbe7a68775129eb024a3233dde2d1f 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/spline/SplineParameterizer.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/spline/SplineParameterizer.java
+@@ -28,6 +28,8 @@
+ 
+ package edu.wpi.first.math.spline;
+ 
++import edu.wpi.first.math.geometry.Twist2d;
++
+ import java.util.ArrayDeque;
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -96,14 +98,14 @@ public final class SplineParameterizer {
+    *     with approximately opposing headings)
+    */
+   public static List<PoseWithCurvature> parameterize(Spline spline, double t0, double t1) {
+-    var splinePoints = new ArrayList<PoseWithCurvature>();
++    ArrayList<PoseWithCurvature> splinePoints = new ArrayList<PoseWithCurvature>();
+ 
+     // The parameterization does not add the initial point. Let's add that.
+     splinePoints.add(spline.getPoint(t0));
+ 
+     // We use an "explicit stack" to simulate recursion, instead of a recursive function call
+     // This give us greater control, instead of a stack overflow
+-    var stack = new ArrayDeque<StackContents>();
++    ArrayDeque<StackContents> stack = new ArrayDeque<StackContents>();
+     stack.push(new StackContents(t0, t1));
+ 
+     StackContents current;
+@@ -116,7 +118,7 @@ public final class SplineParameterizer {
+       start = spline.getPoint(current.t0);
+       end = spline.getPoint(current.t1);
+ 
+-      final var twist = start.poseMeters.log(end.poseMeters);
++      final Twist2d twist = start.poseMeters.log(end.poseMeters);
+       if (Math.abs(twist.dy) > kMaxDy
+           || Math.abs(twist.dx) > kMaxDx
+           || Math.abs(twist.dtheta) > kMaxDtheta) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
+index c0dc037a75885ea1ab83f34663c6b850b6cfb54a..9d5cdc2e904ab233e865b548737c5f3f7a7b50e3 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
+@@ -168,11 +168,11 @@ public class Trajectory implements ProtobufSerializable {
+    * @return The transformed trajectory.
+    */
+   public Trajectory transformBy(Transform2d transform) {
+-    var firstState = m_states.get(0);
+-    var firstPose = firstState.poseMeters;
++    State firstState = m_states.get(0);
++    Pose2d firstPose = firstState.poseMeters;
+ 
+     // Calculate the transformed first pose.
+-    var newFirstPose = firstPose.plus(transform);
++    Pose2d newFirstPose = firstPose.plus(transform);
+     List<State> newStates = new ArrayList<>();
+ 
+     newStates.add(
+@@ -184,7 +184,7 @@ public class Trajectory implements ProtobufSerializable {
+             firstState.curvatureRadPerMeter));
+ 
+     for (int i = 1; i < m_states.size(); i++) {
+-      var state = m_states.get(i);
++      State state = m_states.get(i);
+       // We are transforming relative to the coordinate frame of the new initial pose.
+       newStates.add(
+           new State(
+@@ -253,7 +253,7 @@ public class Trajectory implements ProtobufSerializable {
+     // interpolate between the end of this trajectory and the second state of the
+     // other trajectory.
+     for (int i = 1; i < other.getStates().size(); ++i) {
+-      var s = other.getStates().get(i);
++      State s = other.getStates().get(i);
+       states.add(
+           new State(
+               s.timeSeconds + m_totalTimeSeconds,
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+index fcfef4508c4c89fa145432c961fca8654dc69b0a..6a8d77a66fa58e32e8f3a2ed5b3a791de2f57ff8 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+@@ -62,11 +62,11 @@ public final class TrajectoryGenerator {
+       List<Translation2d> interiorWaypoints,
+       Spline.ControlVector end,
+       TrajectoryConfig config) {
+-    final var flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
++    final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+ 
+     // Clone the control vectors.
+-    var newInitial = new Spline.ControlVector(initial.x, initial.y);
+-    var newEnd = new Spline.ControlVector(end.x, end.y);
++    Spline.ControlVector newInitial = new Spline.ControlVector(initial.x, initial.y);
++    Spline.ControlVector newEnd = new Spline.ControlVector(end.x, end.y);
+ 
+     // Change the orientation if reversed.
+     if (config.isReversed()) {
+@@ -90,7 +90,7 @@ public final class TrajectoryGenerator {
+ 
+     // Change the points back to their original orientation.
+     if (config.isReversed()) {
+-      for (var point : points) {
++      for (PoseWithCurvature point : points) {
+         point.poseMeters = point.poseMeters.plus(flip);
+         point.curvatureRadPerMeter *= -1;
+       }
+@@ -121,7 +121,7 @@ public final class TrajectoryGenerator {
+    */
+   public static Trajectory generateTrajectory(
+       Pose2d start, List<Translation2d> interiorWaypoints, Pose2d end, TrajectoryConfig config) {
+-    var controlVectors =
++    Spline.ControlVector[] controlVectors =
+         SplineHelper.getCubicControlVectorsFromWaypoints(
+             start, interiorWaypoints.toArray(new Translation2d[0]), end);
+ 
+@@ -140,12 +140,12 @@ public final class TrajectoryGenerator {
+    */
+   public static Trajectory generateTrajectory(
+       ControlVectorList controlVectors, TrajectoryConfig config) {
+-    final var flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+-    final var newControlVectors = new ArrayList<Spline.ControlVector>(controlVectors.size());
++    final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
++    final ArrayList<Spline.ControlVector> newControlVectors = new ArrayList<Spline.ControlVector>(controlVectors.size());
+ 
+     // Create a new control vector list, flipping the orientation if reversed.
+-    for (final var vector : controlVectors) {
+-      var newVector = new Spline.ControlVector(vector.x, vector.y);
++    for (final Spline.ControlVector vector : controlVectors) {
++      Spline.ControlVector newVector = new Spline.ControlVector(vector.x, vector.y);
+       if (config.isReversed()) {
+         newVector.x[1] *= -1;
+         newVector.y[1] *= -1;
+@@ -167,7 +167,7 @@ public final class TrajectoryGenerator {
+ 
+     // Change the points back to their original orientation.
+     if (config.isReversed()) {
+-      for (var point : points) {
++      for (PoseWithCurvature point : points) {
+         point.poseMeters = point.poseMeters.plus(flip);
+         point.curvatureRadPerMeter *= -1;
+       }
+@@ -194,7 +194,7 @@ public final class TrajectoryGenerator {
+    * @return The generated trajectory.
+    */
+   public static Trajectory generateTrajectory(List<Pose2d> waypoints, TrajectoryConfig config) {
+-    final var flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
++    final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+ 
+     List<Pose2d> newWaypoints = new ArrayList<>();
+     if (config.isReversed()) {
+@@ -219,7 +219,7 @@ public final class TrajectoryGenerator {
+ 
+     // Change the points back to their original orientation.
+     if (config.isReversed()) {
+-      for (var point : points) {
++      for (PoseWithCurvature point : points) {
+         point.poseMeters = point.poseMeters.plus(flip);
+         point.curvatureRadPerMeter *= -1;
+       }
+@@ -246,15 +246,15 @@ public final class TrajectoryGenerator {
+    */
+   public static List<PoseWithCurvature> splinePointsFromSplines(Spline[] splines) {
+     // Create the vector of spline points.
+-    var splinePoints = new ArrayList<PoseWithCurvature>();
++    ArrayList<PoseWithCurvature> splinePoints = new ArrayList<PoseWithCurvature>();
+ 
+     // Add the first point to the vector.
+     splinePoints.add(splines[0].getPoint(0.0));
+ 
+     // Iterate through the vector and parameterize each spline, adding the
+     // parameterized points to the final vector.
+-    for (final var spline : splines) {
+-      var points = SplineParameterizer.parameterize(spline);
++    for (final Spline spline : splines) {
++      List<PoseWithCurvature> points = SplineParameterizer.parameterize(spline);
+ 
+       // Append the array of poses to the vector. We are removing the first
+       // point because it's a duplicate of the last point from the previous
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryParameterizer.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryParameterizer.java
+index 35b2a4650565e83b4371a4f7114a0670e6f4c3aa..754f72451c0129dfe1c0a20565352fbdd3d813c5 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryParameterizer.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryParameterizer.java
+@@ -62,8 +62,8 @@ public final class TrajectoryParameterizer {
+       double maxVelocityMetersPerSecond,
+       double maxAccelerationMetersPerSecondSq,
+       boolean reversed) {
+-    var constrainedStates = new ArrayList<ConstrainedState>(points.size());
+-    var predecessor =
++    ArrayList<ConstrainedState> constrainedStates = new ArrayList<ConstrainedState>(points.size());
++    ConstrainedState predecessor =
+         new ConstrainedState(
+             points.get(0),
+             0,
+@@ -74,7 +74,7 @@ public final class TrajectoryParameterizer {
+     // Forward pass
+     for (int i = 0; i < points.size(); i++) {
+       constrainedStates.add(new ConstrainedState());
+-      var constrainedState = constrainedStates.get(i);
++      ConstrainedState constrainedState = constrainedStates.get(i);
+       constrainedState.pose = points.get(i);
+ 
+       // Begin constraining based on predecessor.
+@@ -103,7 +103,7 @@ public final class TrajectoryParameterizer {
+ 
+         // At this point, the constrained state is fully constructed apart from
+         // all the custom-defined user constraints.
+-        for (final var constraint : constraints) {
++        for (final TrajectoryConstraint constraint : constraints) {
+           constrainedState.maxVelocityMetersPerSecond =
+               Math.min(
+                   constrainedState.maxVelocityMetersPerSecond,
+@@ -149,7 +149,7 @@ public final class TrajectoryParameterizer {
+       predecessor = constrainedState;
+     }
+ 
+-    var successor =
++    ConstrainedState successor =
+         new ConstrainedState(
+             points.get(points.size() - 1),
+             constrainedStates.get(constrainedStates.size() - 1).distanceMeters,
+@@ -159,7 +159,7 @@ public final class TrajectoryParameterizer {
+ 
+     // Backward pass
+     for (int i = points.size() - 1; i >= 0; i--) {
+-      var constrainedState = constrainedStates.get(i);
++      ConstrainedState constrainedState = constrainedStates.get(i);
+       double ds = constrainedState.distanceMeters - successor.distanceMeters; // negative
+ 
+       while (true) {
+@@ -206,13 +206,13 @@ public final class TrajectoryParameterizer {
+ 
+     // Now we can integrate the constrained states forward in time to obtain our
+     // trajectory states.
+-    var states = new ArrayList<Trajectory.State>(points.size());
++    ArrayList<Trajectory.State> states = new ArrayList<Trajectory.State>(points.size());
+     double timeSeconds = 0.0;
+     double distanceMeters = 0.0;
+     double velocityMetersPerSecond = 0.0;
+ 
+     for (int i = 0; i < constrainedStates.size(); i++) {
+-      final var state = constrainedStates.get(i);
++      final ConstrainedState state = constrainedStates.get(i);
+ 
+       // Calculate the change in position between the current state and the previous
+       // state.
+@@ -260,9 +260,9 @@ public final class TrajectoryParameterizer {
+ 
+   private static void enforceAccelerationLimits(
+       boolean reverse, List<TrajectoryConstraint> constraints, ConstrainedState state) {
+-    for (final var constraint : constraints) {
++    for (final TrajectoryConstraint constraint : constraints) {
+       double factor = reverse ? -1.0 : 1.0;
+-      final var minMaxAccel =
++      final TrajectoryConstraint.MinMax minMaxAccel =
+           constraint.getMinMaxAccelerationMetersPerSecondSq(
+               state.pose.poseMeters,
+               state.pose.curvatureRadPerMeter,
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveKinematicsConstraint.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveKinematicsConstraint.java
+index 2164435954467e38e34bf0f42b66bcf7847c9509..54488d6c4b67703e630e52545abb0013204bf9bb 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveKinematicsConstraint.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveKinematicsConstraint.java
+@@ -7,6 +7,7 @@ package edu.wpi.first.math.trajectory.constraint;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
++import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+ 
+ /**
+  * A class that enforces constraints on the differential drive kinematics. This can be used to
+@@ -42,12 +43,12 @@ public class DifferentialDriveKinematicsConstraint implements TrajectoryConstrai
+   public double getMaxVelocityMetersPerSecond(
+       Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond) {
+     // Create an object to represent the current chassis speeds.
+-    var chassisSpeeds =
++    ChassisSpeeds chassisSpeeds =
+         new ChassisSpeeds(
+             velocityMetersPerSecond, 0, velocityMetersPerSecond * curvatureRadPerMeter);
+ 
+     // Get the wheel speeds and normalize them to within the max velocity.
+-    var wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
++    DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
+     wheelSpeeds.desaturate(m_maxSpeedMetersPerSecond);
+ 
+     // Return the new linear chassis speed.
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveVoltageConstraint.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveVoltageConstraint.java
+index 0cc6bc54bc64fc7a0e77460b11e26ba062416865..e24e506d54053bf0d3dd42558b35ab80b100f987 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveVoltageConstraint.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/DifferentialDriveVoltageConstraint.java
+@@ -10,6 +10,7 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
++import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+ 
+ /**
+  * A class that enforces constraints on differential drive voltage expenditure based on the motor
+@@ -51,7 +52,7 @@ public class DifferentialDriveVoltageConstraint implements TrajectoryConstraint
+   @Override
+   public MinMax getMinMaxAccelerationMetersPerSecondSq(
+       Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond) {
+-    var wheelSpeeds =
++    DifferentialDriveWheelSpeeds wheelSpeeds =
+         m_kinematics.toWheelSpeeds(
+             new ChassisSpeeds(
+                 velocityMetersPerSecond, 0, velocityMetersPerSecond * curvatureRadPerMeter));
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/MecanumDriveKinematicsConstraint.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/MecanumDriveKinematicsConstraint.java
+index dab3699650fc5425146062c95c143b8faa7b10ef..1116168747d15aba4a955a063c77a0efd3016eda 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/MecanumDriveKinematicsConstraint.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/MecanumDriveKinematicsConstraint.java
+@@ -7,6 +7,7 @@ package edu.wpi.first.math.trajectory.constraint;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
++import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
+ 
+ /**
+  * A class that enforces constraints on the mecanum drive kinematics. This can be used to ensure
+@@ -42,21 +43,21 @@ public class MecanumDriveKinematicsConstraint implements TrajectoryConstraint {
+   public double getMaxVelocityMetersPerSecond(
+       Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond) {
+     // Represents the velocity of the chassis in the x direction
+-    var xdVelocity = velocityMetersPerSecond * poseMeters.getRotation().getCos();
++    double xdVelocity = velocityMetersPerSecond * poseMeters.getRotation().getCos();
+ 
+     // Represents the velocity of the chassis in the y direction
+-    var ydVelocity = velocityMetersPerSecond * poseMeters.getRotation().getSin();
++    double ydVelocity = velocityMetersPerSecond * poseMeters.getRotation().getSin();
+ 
+     // Create an object to represent the current chassis speeds.
+-    var chassisSpeeds =
++    ChassisSpeeds chassisSpeeds =
+         new ChassisSpeeds(xdVelocity, ydVelocity, velocityMetersPerSecond * curvatureRadPerMeter);
+ 
+     // Get the wheel speeds and normalize them to within the max velocity.
+-    var wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
+     wheelSpeeds.desaturate(m_maxSpeedMetersPerSecond);
+ 
+     // Convert normalized wheel speeds back to chassis speeds
+-    var normSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    ChassisSpeeds normSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     // Return the new linear chassis speed.
+     return Math.hypot(normSpeeds.vxMetersPerSecond, normSpeeds.vyMetersPerSecond);
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/SwerveDriveKinematicsConstraint.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/SwerveDriveKinematicsConstraint.java
+index 5c2e1f58fe65b35bf9b2a824ae36d6208a34a058..538392e64f5e9d851313239953380be2d8cb0f94 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/SwerveDriveKinematicsConstraint.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/constraint/SwerveDriveKinematicsConstraint.java
+@@ -7,6 +7,7 @@ package edu.wpi.first.math.trajectory.constraint;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
++import edu.wpi.first.math.kinematics.SwerveModuleState;
+ 
+ /**
+  * A class that enforces constraints on the swerve drive kinematics. This can be used to ensure that
+@@ -42,21 +43,21 @@ public class SwerveDriveKinematicsConstraint implements TrajectoryConstraint {
+   public double getMaxVelocityMetersPerSecond(
+       Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond) {
+     // Represents the velocity of the chassis in the x direction
+-    var xdVelocity = velocityMetersPerSecond * poseMeters.getRotation().getCos();
++    double xdVelocity = velocityMetersPerSecond * poseMeters.getRotation().getCos();
+ 
+     // Represents the velocity of the chassis in the y direction
+-    var ydVelocity = velocityMetersPerSecond * poseMeters.getRotation().getSin();
++    double ydVelocity = velocityMetersPerSecond * poseMeters.getRotation().getSin();
+ 
+     // Create an object to represent the current chassis speeds.
+-    var chassisSpeeds =
++    ChassisSpeeds chassisSpeeds =
+         new ChassisSpeeds(xdVelocity, ydVelocity, velocityMetersPerSecond * curvatureRadPerMeter);
+ 
+     // Get the wheel speeds and normalize them to within the max velocity.
+-    var wheelSpeeds = m_kinematics.toSwerveModuleStates(chassisSpeeds);
++    SwerveModuleState[] wheelSpeeds = m_kinematics.toSwerveModuleStates(chassisSpeeds);
+     SwerveDriveKinematics.desaturateWheelSpeeds(wheelSpeeds, m_maxSpeedMetersPerSecond);
+ 
+     // Convert normalized wheel speeds back to chassis speeds
+-    var normSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    ChassisSpeeds normSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     // Return the new linear chassis speed.
+     return Math.hypot(normSpeeds.vxMetersPerSecond, normSpeeds.vyMetersPerSecond);
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/controller/HolonomicDriveControllerTest.java b/wpimath/src/test/java/edu/wpi/first/math/controller/HolonomicDriveControllerTest.java
+index db3f6dcf2a8c067813174409ef4ac79722ed638f..d37802a816ca9253fb9c9e627b84cffaef65df81 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/controller/HolonomicDriveControllerTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/controller/HolonomicDriveControllerTest.java
+@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import edu.wpi.first.math.MathUtil;
++import edu.wpi.first.math.controller.PIDController;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+@@ -75,7 +76,7 @@ class HolonomicDriveControllerTest {
+ 
+   @Test
+   void testDoesNotRotateUnnecessarily() {
+-    var controller =
++    HolonomicDriveController controller =
+         new HolonomicDriveController(
+             new PIDController(1, 0, 0),
+             new PIDController(1, 0, 0),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/controller/RamseteControllerTest.java b/wpimath/src/test/java/edu/wpi/first/math/controller/RamseteControllerTest.java
+index 813bf429ce6590ae468b35da3ee48a2bd3fa6557..081e85d42ec170b43334de42d925f9029f61f3f7 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/controller/RamseteControllerTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/controller/RamseteControllerTest.java
+@@ -11,9 +11,13 @@ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
++import edu.wpi.first.math.kinematics.ChassisSpeeds;
++import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.trajectory.TrajectoryConfig;
+ import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+ import java.util.ArrayList;
++import java.util.List;
++
+ import org.junit.jupiter.api.Test;
+ 
+ class RamseteControllerTest {
+@@ -22,32 +26,32 @@ class RamseteControllerTest {
+ 
+   @Test
+   void testReachesReference() {
+-    final var controller = new RamseteController(2.0, 0.7);
+-    var robotPose = new Pose2d(2.7, 23.0, Rotation2d.fromDegrees(0.0));
++    final RamseteController controller = new RamseteController(2.0, 0.7);
++    Pose2d robotPose = new Pose2d(2.7, 23.0, Rotation2d.fromDegrees(0.0));
+ 
+-    final var waypoints = new ArrayList<Pose2d>();
++    final List<Pose2d> waypoints = new ArrayList<Pose2d>();
+     waypoints.add(new Pose2d(2.75, 22.521, new Rotation2d(0)));
+     waypoints.add(new Pose2d(24.73, 19.68, new Rotation2d(5.846)));
+-    var config = new TrajectoryConfig(8.8, 0.1);
+-    final var trajectory = TrajectoryGenerator.generateTrajectory(waypoints, config);
++    TrajectoryConfig config = new TrajectoryConfig(8.8, 0.1);
++    final Trajectory trajectory = TrajectoryGenerator.generateTrajectory(waypoints, config);
+ 
+     final double kDt = 0.02;
+-    final var totalTime = trajectory.getTotalTimeSeconds();
++    final double totalTime = trajectory.getTotalTimeSeconds();
+     for (int i = 0; i < (totalTime / kDt); ++i) {
+-      var state = trajectory.sample(kDt * i);
++      Trajectory.State state = trajectory.sample(kDt * i);
+ 
+-      var output = controller.calculate(robotPose, state);
++      ChassisSpeeds output = controller.calculate(robotPose, state);
+       robotPose =
+           robotPose.exp(
+               new Twist2d(output.vxMetersPerSecond * kDt, 0, output.omegaRadiansPerSecond * kDt));
+     }
+ 
+-    final var states = trajectory.getStates();
+-    final var endPose = states.get(states.size() - 1).poseMeters;
++    final List<Trajectory.State> states = trajectory.getStates();
++    final Pose2d endPose = states.get(states.size() - 1).poseMeters;
+ 
+     // Java lambdas require local variables referenced from a lambda expression
+     // must be final or effectively final.
+-    final var finalRobotPose = robotPose;
++    final Pose2d finalRobotPose = robotPose;
+     assertAll(
+         () -> assertEquals(endPose.getX(), finalRobotPose.getX(), kTolerance),
+         () -> assertEquals(endPose.getY(), finalRobotPose.getY(), kTolerance),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+index 2c683c23ba5c5a5e258ff216a485d934fa23f9dc..0186a905f03bf20d98a29acc6a9b621382b968dc 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+@@ -28,10 +28,10 @@ class Pose2dTest {
+   void testRotateBy() {
+     final double x = 1.0;
+     final double y = 2.0;
+-    var initial = new Pose2d(new Translation2d(x, y), Rotation2d.fromDegrees(45.0));
++    Pose2d initial = new Pose2d(new Translation2d(x, y), Rotation2d.fromDegrees(45.0));
+ 
+-    var rotation = Rotation2d.fromDegrees(5.0);
+-    var rotated = initial.rotateBy(rotation);
++    Rotation2d rotation = Rotation2d.fromDegrees(5.0);
++    Pose2d rotated = initial.rotateBy(rotation);
+ 
+     // Translation is rotated by CCW rotation matrix
+     double c = rotation.getCos();
+@@ -48,10 +48,10 @@ class Pose2dTest {
+ 
+   @Test
+   void testTransformBy() {
+-    var initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+-    var transformation = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
++    Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
++    Transform2d transformation = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
+ 
+-    var transformed = initial.plus(transformation);
++    Pose2d transformed = initial.plus(transformation);
+ 
+     assertAll(
+         () -> assertEquals(1.0 + 5.0 / Math.sqrt(2.0), transformed.getX(), kEpsilon),
+@@ -61,10 +61,10 @@ class Pose2dTest {
+ 
+   @Test
+   void testRelativeTo() {
+-    var initial = new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(45.0));
+-    var last = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(45.0));
++    Pose2d initial = new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(45.0));
++    Pose2d last = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(45.0));
+ 
+-    var finalRelativeToInitial = last.relativeTo(initial);
++    Pose2d finalRelativeToInitial = last.relativeTo(initial);
+ 
+     assertAll(
+         () -> assertEquals(5.0 * Math.sqrt(2.0), finalRelativeToInitial.getX(), kEpsilon),
+@@ -74,24 +74,24 @@ class Pose2dTest {
+ 
+   @Test
+   void testEquality() {
+-    var one = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
+-    var two = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
++    Pose2d one = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
++    Pose2d two = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
+     assertEquals(one, two);
+   }
+ 
+   @Test
+   void testInequality() {
+-    var one = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
+-    var two = new Pose2d(0.0, 1.524, Rotation2d.fromDegrees(43.0));
++    Pose2d one = new Pose2d(0.0, 5.0, Rotation2d.fromDegrees(43.0));
++    Pose2d two = new Pose2d(0.0, 1.524, Rotation2d.fromDegrees(43.0));
+     assertNotEquals(one, two);
+   }
+ 
+   @Test
+   void testMinus() {
+-    var initial = new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(45.0));
+-    var last = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(45.0));
++    Pose2d initial = new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(45.0));
++    Pose2d last = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(45.0));
+ 
+-    final var transform = last.minus(initial);
++    final Transform2d transform = last.minus(initial);
+ 
+     assertAll(
+         () -> assertEquals(5.0 * Math.sqrt(2.0), transform.getX(), kEpsilon),
+@@ -101,19 +101,19 @@ class Pose2dTest {
+ 
+   @Test
+   void testNearest() {
+-    var origin = new Pose2d();
++    Pose2d origin = new Pose2d();
+ 
+     // Distance sort
+     // each poseX is X units away from the origin at a random angle.
+-    final var pose1 =
++    final Pose2d pose1 =
+         new Pose2d(new Translation2d(1, Rotation2d.fromDegrees(45)), new Rotation2d());
+-    final var pose2 =
++    final Pose2d pose2 =
+         new Pose2d(new Translation2d(2, Rotation2d.fromDegrees(90)), new Rotation2d());
+-    final var pose3 =
++    final Pose2d pose3 =
+         new Pose2d(new Translation2d(3, Rotation2d.fromDegrees(135)), new Rotation2d());
+-    final var pose4 =
++    final Pose2d pose4 =
+         new Pose2d(new Translation2d(4, Rotation2d.fromDegrees(180)), new Rotation2d());
+-    final var pose5 =
++    final Pose2d pose5 =
+         new Pose2d(new Translation2d(5, Rotation2d.fromDegrees(270)), new Rotation2d());
+ 
+     assertEquals(pose3, origin.nearest(List.of(pose5, pose3, pose4)));
+@@ -123,13 +123,13 @@ class Pose2dTest {
+     // Rotation component sort (when distance is the same)
+     // Use the same translation because using different angles at the same distance can cause
+     // rounding error.
+-    final var translation = new Translation2d(1, new Rotation2d());
++    final Translation2d translation = new Translation2d(1, new Rotation2d());
+ 
+-    final var poseA = new Pose2d(translation, Rotation2d.fromDegrees(0));
+-    final var poseB = new Pose2d(translation, Rotation2d.fromDegrees(30));
+-    final var poseC = new Pose2d(translation, Rotation2d.fromDegrees(120));
+-    final var poseD = new Pose2d(translation, Rotation2d.fromDegrees(90));
+-    final var poseE = new Pose2d(translation, Rotation2d.fromDegrees(-180));
++    final Pose2d poseA = new Pose2d(translation, Rotation2d.fromDegrees(0));
++    final Pose2d poseB = new Pose2d(translation, Rotation2d.fromDegrees(30));
++    final Pose2d poseC = new Pose2d(translation, Rotation2d.fromDegrees(120));
++    final Pose2d poseD = new Pose2d(translation, Rotation2d.fromDegrees(90));
++    final Pose2d poseE = new Pose2d(translation, Rotation2d.fromDegrees(-180));
+ 
+     assertEquals(
+         poseA, new Pose2d(0, 0, Rotation2d.fromDegrees(360)).nearest(List.of(poseA, poseB, poseD)));
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
+index 8a5dee60ea2d052c500d7075d89aa5066d506204..0a88a4ce54f2b33b245919438df810839692710b 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
+@@ -23,8 +23,8 @@ class Rotation2dTest {
+ 
+   @Test
+   void testRadiansToDegrees() {
+-    var rot1 = Rotation2d.fromRadians(Math.PI / 3);
+-    var rot2 = Rotation2d.fromRadians(Math.PI / 4);
++    Rotation2d rot1 = Rotation2d.fromRadians(Math.PI / 3);
++    Rotation2d rot2 = Rotation2d.fromRadians(Math.PI / 4);
+ 
+     assertAll(
+         () -> assertEquals(60.0, rot1.getDegrees(), kEpsilon),
+@@ -33,8 +33,8 @@ class Rotation2dTest {
+ 
+   @Test
+   void testRadiansAndDegrees() {
+-    var rot1 = Rotation2d.fromDegrees(45.0);
+-    var rot2 = Rotation2d.fromDegrees(30.0);
++    Rotation2d rot1 = Rotation2d.fromDegrees(45.0);
++    Rotation2d rot2 = Rotation2d.fromDegrees(30.0);
+ 
+     assertAll(
+         () -> assertEquals(Math.PI / 4.0, rot1.getRadians(), kEpsilon),
+@@ -43,8 +43,8 @@ class Rotation2dTest {
+ 
+   @Test
+   void testRotateByFromZero() {
+-    var zero = new Rotation2d();
+-    var rotated = zero.rotateBy(Rotation2d.fromDegrees(90.0));
++    Rotation2d zero = new Rotation2d();
++    Rotation2d rotated = zero.rotateBy(Rotation2d.fromDegrees(90.0));
+ 
+     assertAll(
+         () -> assertEquals(Math.PI / 2.0, rotated.getRadians(), kEpsilon),
+@@ -53,7 +53,7 @@ class Rotation2dTest {
+ 
+   @Test
+   void testRotateByNonZero() {
+-    var rot = Rotation2d.fromDegrees(90.0);
++    Rotation2d rot = Rotation2d.fromDegrees(90.0);
+     rot = rot.plus(Rotation2d.fromDegrees(30.0));
+ 
+     assertEquals(120.0, rot.getDegrees(), kEpsilon);
+@@ -61,22 +61,22 @@ class Rotation2dTest {
+ 
+   @Test
+   void testMinus() {
+-    var rot1 = Rotation2d.fromDegrees(70.0);
+-    var rot2 = Rotation2d.fromDegrees(30.0);
++    Rotation2d rot1 = Rotation2d.fromDegrees(70.0);
++    Rotation2d rot2 = Rotation2d.fromDegrees(30.0);
+ 
+     assertEquals(40.0, rot1.minus(rot2).getDegrees(), kEpsilon);
+   }
+ 
+   @Test
+   void testUnaryMinus() {
+-    var rot = Rotation2d.fromDegrees(20.0);
++    Rotation2d rot = Rotation2d.fromDegrees(20.0);
+ 
+     assertEquals(-20.0, rot.unaryMinus().getDegrees(), kEpsilon);
+   }
+ 
+   @Test
+   void testMultiply() {
+-    var rot = Rotation2d.fromDegrees(10.0);
++    Rotation2d rot = Rotation2d.fromDegrees(10.0);
+ 
+     assertEquals(30.0, rot.times(3.0).getDegrees(), kEpsilon);
+     assertEquals(410.0, rot.times(41.0).getDegrees(), kEpsilon);
+@@ -84,8 +84,8 @@ class Rotation2dTest {
+ 
+   @Test
+   void testEquality() {
+-    var rot1 = Rotation2d.fromDegrees(43.0);
+-    var rot2 = Rotation2d.fromDegrees(43.0);
++    Rotation2d rot1 = Rotation2d.fromDegrees(43.0);
++    Rotation2d rot2 = Rotation2d.fromDegrees(43.0);
+     assertEquals(rot1, rot2);
+ 
+     rot1 = Rotation2d.fromDegrees(-180.0);
+@@ -95,17 +95,17 @@ class Rotation2dTest {
+ 
+   @Test
+   void testInequality() {
+-    var rot1 = Rotation2d.fromDegrees(43.0);
+-    var rot2 = Rotation2d.fromDegrees(43.5);
++    Rotation2d rot1 = Rotation2d.fromDegrees(43.0);
++    Rotation2d rot2 = Rotation2d.fromDegrees(43.5);
+     assertNotEquals(rot1, rot2);
+   }
+ 
+   @Test
+   void testInterpolate() {
+     // 50 + (70 - 50) * 0.5 = 60
+-    var rot1 = Rotation2d.fromDegrees(50);
+-    var rot2 = Rotation2d.fromDegrees(70);
+-    var interpolated = rot1.interpolate(rot2, 0.5);
++    Rotation2d rot1 = Rotation2d.fromDegrees(50);
++    Rotation2d rot2 = Rotation2d.fromDegrees(70);
++    Rotation2d interpolated = rot1.interpolate(rot2, 0.5);
+     assertEquals(60.0, interpolated.getDegrees(), kEpsilon);
+ 
+     // -160 minus half distance between 170 and -160 (15) = -175
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
+index 5817f4e2825cbe918cdfe32177770c85f5e617cc..0cdcf7475780b6b879424f59365004b93f02722e 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
+@@ -24,23 +24,23 @@ class Transform2dTest {
+ 
+   @Test
+   void testInverse() {
+-    var initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+-    var transform = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
++    Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
++    Transform2d transform = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
+ 
+-    var transformed = initial.plus(transform);
+-    var untransformed = transformed.plus(transform.inverse());
++    Pose2d transformed = initial.plus(transform);
++    Pose2d untransformed = transformed.plus(transform.inverse());
+ 
+     assertEquals(initial, untransformed);
+   }
+ 
+   @Test
+   void testComposition() {
+-    var initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+-    var transform1 = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
+-    var transform2 = new Transform2d(new Translation2d(0.0, 2.0), Rotation2d.fromDegrees(5.0));
++    Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
++    Transform2d transform1 = new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
++    Transform2d transform2 = new Transform2d(new Translation2d(0.0, 2.0), Rotation2d.fromDegrees(5.0));
+ 
+-    var transformedSeparate = initial.plus(transform1).plus(transform2);
+-    var transformedCombined = initial.plus(transform1.plus(transform2));
++    Pose2d transformedSeparate = initial.plus(transform1).plus(transform2);
++    Pose2d transformedCombined = initial.plus(transform1.plus(transform2));
+ 
+     assertEquals(transformedSeparate, transformedCombined);
+   }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+index 39e2073b6383497f1d3467c902ab052c945856be..16e143f58f54a4a26c5b60943aedffda3f3ae62d 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+@@ -17,10 +17,10 @@ class Translation2dTest {
+ 
+   @Test
+   void testSum() {
+-    var one = new Translation2d(1.0, 3.0);
+-    var two = new Translation2d(2.0, 5.0);
++    Translation2d one = new Translation2d(1.0, 3.0);
++    Translation2d two = new Translation2d(2.0, 5.0);
+ 
+-    var sum = one.plus(two);
++    Translation2d sum = one.plus(two);
+ 
+     assertAll(
+         () -> assertEquals(3.0, sum.getX(), kEpsilon),
+@@ -29,10 +29,10 @@ class Translation2dTest {
+ 
+   @Test
+   void testDifference() {
+-    var one = new Translation2d(1.0, 3.0);
+-    var two = new Translation2d(2.0, 5.0);
++    Translation2d one = new Translation2d(1.0, 3.0);
++    Translation2d two = new Translation2d(2.0, 5.0);
+ 
+-    var difference = one.minus(two);
++    Translation2d difference = one.minus(two);
+ 
+     assertAll(
+         () -> assertEquals(-1.0, difference.getX(), kEpsilon),
+@@ -41,8 +41,8 @@ class Translation2dTest {
+ 
+   @Test
+   void testRotateBy() {
+-    var another = new Translation2d(3.0, 0.0);
+-    var rotated = another.rotateBy(Rotation2d.fromDegrees(90.0));
++    Translation2d another = new Translation2d(3.0, 0.0);
++    Translation2d rotated = another.rotateBy(Rotation2d.fromDegrees(90.0));
+ 
+     assertAll(
+         () -> assertEquals(0.0, rotated.getX(), kEpsilon),
+@@ -51,8 +51,8 @@ class Translation2dTest {
+ 
+   @Test
+   void testMultiplication() {
+-    var original = new Translation2d(3.0, 5.0);
+-    var mult = original.times(3);
++    Translation2d original = new Translation2d(3.0, 5.0);
++    Translation2d mult = original.times(3);
+ 
+     assertAll(
+         () -> assertEquals(9.0, mult.getX(), kEpsilon),
+@@ -61,8 +61,8 @@ class Translation2dTest {
+ 
+   @Test
+   void testDivision() {
+-    var original = new Translation2d(3.0, 5.0);
+-    var div = original.div(2);
++    Translation2d original = new Translation2d(3.0, 5.0);
++    Translation2d div = original.div(2);
+ 
+     assertAll(
+         () -> assertEquals(1.5, div.getX(), kEpsilon),
+@@ -71,21 +71,21 @@ class Translation2dTest {
+ 
+   @Test
+   void testNorm() {
+-    var one = new Translation2d(3.0, 5.0);
++    Translation2d one = new Translation2d(3.0, 5.0);
+     assertEquals(Math.hypot(3.0, 5.0), one.getNorm(), kEpsilon);
+   }
+ 
+   @Test
+   void testDistance() {
+-    var one = new Translation2d(1, 1);
+-    var two = new Translation2d(6, 6);
++    Translation2d one = new Translation2d(1, 1);
++    Translation2d two = new Translation2d(6, 6);
+     assertEquals(5.0 * Math.sqrt(2.0), one.getDistance(two), kEpsilon);
+   }
+ 
+   @Test
+   void testUnaryMinus() {
+-    var original = new Translation2d(-4.5, 7);
+-    var inverted = original.unaryMinus();
++    Translation2d original = new Translation2d(-4.5, 7);
++    Translation2d inverted = original.unaryMinus();
+ 
+     assertAll(
+         () -> assertEquals(4.5, inverted.getX(), kEpsilon),
+@@ -94,22 +94,22 @@ class Translation2dTest {
+ 
+   @Test
+   void testEquality() {
+-    var one = new Translation2d(9, 5.5);
+-    var two = new Translation2d(9, 5.5);
++    Translation2d one = new Translation2d(9, 5.5);
++    Translation2d two = new Translation2d(9, 5.5);
+     assertEquals(one, two);
+   }
+ 
+   @Test
+   void testInequality() {
+-    var one = new Translation2d(9, 5.5);
+-    var two = new Translation2d(9, 5.7);
++    Translation2d one = new Translation2d(9, 5.5);
++    Translation2d two = new Translation2d(9, 5.7);
+     assertNotEquals(one, two);
+   }
+ 
+   @Test
+   void testPolarConstructor() {
+-    var one = new Translation2d(Math.sqrt(2), Rotation2d.fromDegrees(45.0));
+-    var two = new Translation2d(2, Rotation2d.fromDegrees(60.0));
++    Translation2d one = new Translation2d(Math.sqrt(2), Rotation2d.fromDegrees(45.0));
++    Translation2d two = new Translation2d(2, Rotation2d.fromDegrees(60.0));
+     assertAll(
+         () -> assertEquals(1.0, one.getX(), kEpsilon),
+         () -> assertEquals(1.0, one.getY(), kEpsilon),
+@@ -119,14 +119,14 @@ class Translation2dTest {
+ 
+   @Test
+   void testNearest() {
+-    var origin = new Translation2d();
++    Translation2d origin = new Translation2d();
+ 
+     // each translationX is X units away from the origin at a random angle.
+-    var translation1 = new Translation2d(1, Rotation2d.fromDegrees(45));
+-    var translation2 = new Translation2d(2, Rotation2d.fromDegrees(90));
+-    var translation3 = new Translation2d(3, Rotation2d.fromDegrees(135));
+-    var translation4 = new Translation2d(4, Rotation2d.fromDegrees(180));
+-    var translation5 = new Translation2d(5, Rotation2d.fromDegrees(270));
++    Translation2d translation1 = new Translation2d(1, Rotation2d.fromDegrees(45));
++    Translation2d translation2 = new Translation2d(2, Rotation2d.fromDegrees(90));
++    Translation2d translation3 = new Translation2d(3, Rotation2d.fromDegrees(135));
++    Translation2d translation4 = new Translation2d(4, Rotation2d.fromDegrees(180));
++    Translation2d translation5 = new Translation2d(5, Rotation2d.fromDegrees(270));
+ 
+     assertEquals(origin.nearest(List.of(translation5, translation3, translation4)), translation3);
+     assertEquals(origin.nearest(List.of(translation1, translation2, translation3)), translation1);
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Twist2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Twist2dTest.java
+index 4108a628ed94dcdfd6970b996ea70e81578ab630..2cfb4d49659d8db414665356bf3aca60270535a3 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Twist2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Twist2dTest.java
+@@ -12,57 +12,57 @@ import org.junit.jupiter.api.Test;
+ class Twist2dTest {
+   @Test
+   void testStraight() {
+-    var straight = new Twist2d(5.0, 0.0, 0.0);
+-    var straightPose = new Pose2d().exp(straight);
++    Twist2d straight = new Twist2d(5.0, 0.0, 0.0);
++    Pose2d straightPose = new Pose2d().exp(straight);
+ 
+-    var expected = new Pose2d(5.0, 0.0, new Rotation2d());
++    Pose2d expected = new Pose2d(5.0, 0.0, new Rotation2d());
+     assertEquals(expected, straightPose);
+   }
+ 
+   @Test
+   void testQuarterCirle() {
+-    var quarterCircle = new Twist2d(5.0 / 2.0 * Math.PI, 0, Math.PI / 2.0);
+-    var quarterCirclePose = new Pose2d().exp(quarterCircle);
++    Twist2d quarterCircle = new Twist2d(5.0 / 2.0 * Math.PI, 0, Math.PI / 2.0);
++    Pose2d quarterCirclePose = new Pose2d().exp(quarterCircle);
+ 
+-    var expected = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(90.0));
++    Pose2d expected = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(90.0));
+     assertEquals(expected, quarterCirclePose);
+   }
+ 
+   @Test
+   void testDiagonalNoDtheta() {
+-    var diagonal = new Twist2d(2.0, 2.0, 0.0);
+-    var diagonalPose = new Pose2d().exp(diagonal);
++    Twist2d diagonal = new Twist2d(2.0, 2.0, 0.0);
++    Pose2d diagonalPose = new Pose2d().exp(diagonal);
+ 
+-    var expected = new Pose2d(2.0, 2.0, new Rotation2d());
++    Pose2d expected = new Pose2d(2.0, 2.0, new Rotation2d());
+     assertEquals(expected, diagonalPose);
+   }
+ 
+   @Test
+   void testEquality() {
+-    var one = new Twist2d(5, 1, 3);
+-    var two = new Twist2d(5, 1, 3);
++    Twist2d one = new Twist2d(5, 1, 3);
++    Twist2d two = new Twist2d(5, 1, 3);
+     assertEquals(one, two);
+   }
+ 
+   @Test
+   void testInequality() {
+-    var one = new Twist2d(5, 1, 3);
+-    var two = new Twist2d(5, 1.2, 3);
++    Twist2d one = new Twist2d(5, 1, 3);
++    Twist2d two = new Twist2d(5, 1.2, 3);
+     assertNotEquals(one, two);
+   }
+ 
+   @Test
+   void testPose2dLog() {
+-    final var start = new Pose2d();
+-    final var end = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(90.0));
++    final Pose2d start = new Pose2d();
++    final Pose2d end = new Pose2d(5.0, 5.0, Rotation2d.fromDegrees(90.0));
+ 
+-    final var twist = start.log(end);
++    final Twist2d twist = start.log(end);
+ 
+-    var expected = new Twist2d(5.0 / 2.0 * Math.PI, 0.0, Math.PI / 2.0);
++    Twist2d expected = new Twist2d(5.0 / 2.0 * Math.PI, 0.0, Math.PI / 2.0);
+     assertEquals(expected, twist);
+ 
+     // Make sure computed twist gives back original end pose
+-    final var reapplied = start.exp(twist);
++    final Pose2d reapplied = start.exp(twist);
+     assertEquals(end, reapplied);
+   }
+ }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
+index 53af4077592a11098511eae21ba67b7e07cdec09..21fed73f185906af3c44cb54f87ea663bab66b2d 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
+@@ -19,23 +19,23 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testDiscretize() {
+-    final var target = new ChassisSpeeds(1.0, 0.0, 0.5);
+-    final var duration = 1.0;
+-    final var dt = 0.01;
++    final ChassisSpeeds target = new ChassisSpeeds(1.0, 0.0, 0.5);
++    final double duration = 1.0;
++    final double dt = 0.01;
+ 
+-    final var speeds = ChassisSpeeds.discretize(target, duration);
+-    final var twist =
++    final ChassisSpeeds speeds = ChassisSpeeds.discretize(target, duration);
++    final Twist2d twist =
+         new Twist2d(
+             speeds.vxMetersPerSecond * dt,
+             speeds.vyMetersPerSecond * dt,
+             speeds.omegaRadiansPerSecond * dt);
+ 
+-    var pose = new Pose2d();
++    Pose2d pose = new Pose2d();
+     for (double time = 0; time < duration; time += dt) {
+       pose = pose.exp(twist);
+     }
+ 
+-    final var result = pose; // For lambda capture
++    final Pose2d result = pose; // For lambda capture
+     assertAll(
+         () -> assertEquals(target.vxMetersPerSecond * duration, result.getX(), kEpsilon),
+         () -> assertEquals(target.vyMetersPerSecond * duration, result.getY(), kEpsilon),
+@@ -61,7 +61,7 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testFromFieldRelativeSpeeds() {
+-    final var chassisSpeeds =
++    final ChassisSpeeds chassisSpeeds =
+         ChassisSpeeds.fromFieldRelativeSpeeds(1.0, 0.0, 0.5, Rotation2d.fromDegrees(-90.0));
+ 
+     assertAll(
+@@ -72,7 +72,7 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testFromRobotRelativeSpeeds() {
+-    final var chassisSpeeds =
++    final ChassisSpeeds chassisSpeeds =
+         ChassisSpeeds.fromRobotRelativeSpeeds(1.0, 0.0, 0.5, Rotation2d.fromDegrees(45.0));
+ 
+     assertAll(
+@@ -83,10 +83,10 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testPlus() {
+-    final var left = new ChassisSpeeds(1.0, 0.5, 0.75);
+-    final var right = new ChassisSpeeds(2.0, 1.5, 0.25);
++    final ChassisSpeeds left = new ChassisSpeeds(1.0, 0.5, 0.75);
++    final ChassisSpeeds right = new ChassisSpeeds(2.0, 1.5, 0.25);
+ 
+-    final var chassisSpeeds = left.plus(right);
++    final ChassisSpeeds chassisSpeeds = left.plus(right);
+ 
+     assertAll(
+         () -> assertEquals(3.0, chassisSpeeds.vxMetersPerSecond),
+@@ -96,10 +96,10 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testMinus() {
+-    final var left = new ChassisSpeeds(1.0, 0.5, 0.75);
+-    final var right = new ChassisSpeeds(2.0, 0.5, 0.25);
++    final ChassisSpeeds left = new ChassisSpeeds(1.0, 0.5, 0.75);
++    final ChassisSpeeds right = new ChassisSpeeds(2.0, 0.5, 0.25);
+ 
+-    final var chassisSpeeds = left.minus(right);
++    final ChassisSpeeds chassisSpeeds = left.minus(right);
+ 
+     assertAll(
+         () -> assertEquals(-1.0, chassisSpeeds.vxMetersPerSecond),
+@@ -109,7 +109,7 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testUnaryMinus() {
+-    final var chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).unaryMinus();
++    final ChassisSpeeds chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).unaryMinus();
+ 
+     assertAll(
+         () -> assertEquals(-1.0, chassisSpeeds.vxMetersPerSecond),
+@@ -119,7 +119,7 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testMultiplication() {
+-    final var chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).times(2.0);
++    final ChassisSpeeds chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).times(2.0);
+ 
+     assertAll(
+         () -> assertEquals(2.0, chassisSpeeds.vxMetersPerSecond),
+@@ -129,7 +129,7 @@ class ChassisSpeedsTest {
+ 
+   @Test
+   void testDivision() {
+-    final var chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).div(2.0);
++    final ChassisSpeeds chassisSpeeds = (new ChassisSpeeds(1.0, 0.5, 0.75)).div(2.0);
+ 
+     assertAll(
+         () -> assertEquals(0.5, chassisSpeeds.vxMetersPerSecond),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematicsTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematicsTest.java
+index adee41fabc7915db8abd8f213f15653c719c8f44..e49a2a275ebb0d6754b96a8d57a301a39a2f48e3 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematicsTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematicsTest.java
+@@ -16,8 +16,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testInverseKinematicsForZeros() {
+-    var chassisSpeeds = new ChassisSpeeds();
+-    var wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
++    ChassisSpeeds chassisSpeeds = new ChassisSpeeds();
++    DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(0.0, wheelSpeeds.leftMetersPerSecond, kEpsilon),
+@@ -26,8 +26,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testForwardKinematicsForZeros() {
+-    var wheelSpeeds = new DifferentialDriveWheelSpeeds();
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds();
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(0.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+@@ -37,8 +37,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testInverseKinematicsForStraightLine() {
+-    var chassisSpeeds = new ChassisSpeeds(3, 0, 0);
+-    var wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
++    ChassisSpeeds chassisSpeeds = new ChassisSpeeds(3, 0, 0);
++    DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(3.0, wheelSpeeds.leftMetersPerSecond, kEpsilon),
+@@ -47,8 +47,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testForwardKinematicsForStraightLine() {
+-    var wheelSpeeds = new DifferentialDriveWheelSpeeds(3, 3);
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds(3, 3);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(3.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+@@ -58,8 +58,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testInverseKinematicsForRotateInPlace() {
+-    var chassisSpeeds = new ChassisSpeeds(0, 0, Math.PI);
+-    var wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
++    ChassisSpeeds chassisSpeeds = new ChassisSpeeds(0, 0, Math.PI);
++    DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(-0.381 * Math.PI, wheelSpeeds.leftMetersPerSecond, kEpsilon),
+@@ -68,8 +68,8 @@ class DifferentialDriveKinematicsTest {
+ 
+   @Test
+   void testForwardKinematicsForRotateInPlace() {
+-    var wheelSpeeds = new DifferentialDriveWheelSpeeds(+0.381 * Math.PI, -0.381 * Math.PI);
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds(+0.381 * Math.PI, -0.381 * Math.PI);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(0.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometryTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometryTest.java
+index 6d15f64251f84d9a72f50805fe72d093cd37605d..2d901ec459f6acc2e86a3bec9505bdf9df6fb4ac 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometryTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometryTest.java
+@@ -19,7 +19,7 @@ class DifferentialDriveOdometryTest {
+   @Test
+   void testOdometryWithEncoderDistances() {
+     m_odometry.resetPosition(Rotation2d.fromDegrees(45), 0, 0, new Pose2d());
+-    var pose = m_odometry.update(Rotation2d.fromDegrees(135.0), 0.0, 5 * Math.PI);
++    Pose2d pose = m_odometry.update(Rotation2d.fromDegrees(135.0), 0.0, 5 * Math.PI);
+ 
+     assertAll(
+         () -> assertEquals(pose.getX(), 5.0, kEpsilon),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveKinematicsTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveKinematicsTest.java
+index 28fbfd8e8395be385c5b5902756c5075f39907f5..be961be0b7c54e1edfda6c9e954afd67e6576129 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveKinematicsTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveKinematicsTest.java
+@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ import org.junit.jupiter.api.Test;
+ 
+ class MecanumDriveKinematicsTest {
+@@ -24,7 +25,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testStraightLineInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(5, 0, 0);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds);
+ 
+     assertAll(
+         () -> assertEquals(5.0, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -35,8 +36,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testStraightLineForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(3.536, 3.536, 3.536, 3.536);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(3.536, 3.536, 3.536, 3.536);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(3.536, moduleStates.vxMetersPerSecond, 0.1),
+@@ -46,8 +47,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testStraightLineForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(3.536, twist.dx, 0.1),
+@@ -58,7 +59,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testStrafeInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 4, 0);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds);
+ 
+     assertAll(
+         () -> assertEquals(-4.0, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -69,8 +70,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testStrafeForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(-2.828427, 2.828427, 2.828427, -2.828427);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(-2.828427, 2.828427, 2.828427, -2.828427);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(0, moduleStates.vxMetersPerSecond, 0.1),
+@@ -80,8 +81,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testStrafeForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(-2.828427, 2.828427, 2.828427, -2.828427);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(-2.828427, 2.828427, 2.828427, -2.828427);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(0, twist.dx, 0.1),
+@@ -92,7 +93,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testRotationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 2 * Math.PI);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds);
+ 
+     assertAll(
+         () -> assertEquals(-150.79645, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -103,8 +104,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testRotationForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(-150.79645, 150.79645, -150.79645, 150.79645);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(-150.79645, 150.79645, -150.79645, 150.79645);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(0, moduleStates.vxMetersPerSecond, 0.1),
+@@ -114,8 +115,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testRotationForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(-150.79645, 150.79645, -150.79645, 150.79645);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(-150.79645, 150.79645, -150.79645, 150.79645);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(0, twist.dx, 0.1),
+@@ -126,7 +127,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testMixedTranslationRotationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(2, 3, 1);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds);
+ 
+     assertAll(
+         () -> assertEquals(-25.0, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -137,8 +138,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testMixedTranslationRotationForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(-17.677670, 20.51, -13.44, 16.26);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(-17.677670, 20.51, -13.44, 16.26);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(1.413, moduleStates.vxMetersPerSecond, 0.1),
+@@ -148,8 +149,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testMixedTranslationRotationForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(-17.677670, 20.51, -13.44, 16.26);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(-17.677670, 20.51, -13.44, 16.26);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(1.413, twist.dx, 0.1),
+@@ -160,7 +161,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testOffCenterRotationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 1);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds, m_fl);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds, m_fl);
+ 
+     assertAll(
+         () -> assertEquals(0, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -171,8 +172,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testOffCenterRotationForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(0, 16.971, -16.971, 33.941);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(0, 16.971, -16.971, 33.941);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(8.48525, moduleStates.vxMetersPerSecond, 0.1),
+@@ -182,8 +183,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testOffCenterRotationForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(0, 16.971, -16.971, 33.941);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(0, 16.971, -16.971, 33.941);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(8.48525, twist.dx, 0.1),
+@@ -194,7 +195,7 @@ class MecanumDriveKinematicsTest {
+   @Test
+   void testOffCenterTranslationRotationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(5, 2, 1);
+-    var moduleStates = m_kinematics.toWheelSpeeds(speeds, m_fl);
++    MecanumDriveWheelSpeeds moduleStates = m_kinematics.toWheelSpeeds(speeds, m_fl);
+ 
+     assertAll(
+         () -> assertEquals(3.0, moduleStates.frontLeftMetersPerSecond, 0.1),
+@@ -205,8 +206,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testOffCenterRotationTranslationForwardKinematicsKinematics() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(2.12, 21.92, -12.02, 36.06);
+-    var moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(2.12, 21.92, -12.02, 36.06);
++    ChassisSpeeds moduleStates = m_kinematics.toChassisSpeeds(wheelSpeeds);
+ 
+     assertAll(
+         () -> assertEquals(12.02, moduleStates.vxMetersPerSecond, 0.1),
+@@ -216,8 +217,8 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testOffCenterRotationTranslationForwardKinematicsKinematicsWithDeltas() {
+-    var wheelDeltas = new MecanumDriveWheelPositions(2.12, 21.92, -12.02, 36.06);
+-    var twist = m_kinematics.toTwist2d(wheelDeltas);
++    MecanumDriveWheelPositions wheelDeltas = new MecanumDriveWheelPositions(2.12, 21.92, -12.02, 36.06);
++    Twist2d twist = m_kinematics.toTwist2d(wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(12.02, twist.dx, 0.1),
+@@ -227,7 +228,7 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testDesaturate() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(5, 6, 4, 7);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(5, 6, 4, 7);
+     wheelSpeeds.desaturate(5.5);
+ 
+     double factor = 5.5 / 7.0;
+@@ -241,7 +242,7 @@ class MecanumDriveKinematicsTest {
+ 
+   @Test
+   void testDesaturateNegativeSpeeds() {
+-    var wheelSpeeds = new MecanumDriveWheelSpeeds(-5, 6, 4, -7);
++    MecanumDriveWheelSpeeds wheelSpeeds = new MecanumDriveWheelSpeeds(-5, 6, 4, -7);
+     wheelSpeeds.desaturate(5.5);
+ 
+     final double kFactor = 5.5 / 7.0;
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
+index 405749f26bcc704480d248cb78799fc532c0189a..6996a6c85a3249b9fefe25b68874f25f440dd51b 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
+@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.trajectory.TrajectoryConfig;
+ import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+ import java.util.List;
+@@ -32,12 +33,12 @@ class MecanumDriveOdometryTest {
+ 
+   @Test
+   void testMultipleConsecutiveUpdates() {
+-    var wheelPositions = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
++    MecanumDriveWheelPositions wheelPositions = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
+ 
+     m_odometry.resetPosition(new Rotation2d(), wheelPositions, new Pose2d());
+ 
+     m_odometry.update(new Rotation2d(), wheelPositions);
+-    var secondPose = m_odometry.update(new Rotation2d(), wheelPositions);
++    Pose2d secondPose = m_odometry.update(new Rotation2d(), wheelPositions);
+ 
+     assertAll(
+         () -> assertEquals(secondPose.getX(), 0.0, 0.01),
+@@ -48,11 +49,11 @@ class MecanumDriveOdometryTest {
+   @Test
+   void testTwoIterations() {
+     // 5 units/sec  in the x-axis (forward)
+-    final var wheelPositions = new MecanumDriveWheelPositions(0.3536, 0.3536, 0.3536, 0.3536);
++    final MecanumDriveWheelPositions wheelPositions = new MecanumDriveWheelPositions(0.3536, 0.3536, 0.3536, 0.3536);
+     m_odometry.resetPosition(new Rotation2d(), new MecanumDriveWheelPositions(), new Pose2d());
+ 
+     m_odometry.update(new Rotation2d(), new MecanumDriveWheelPositions());
+-    var pose = m_odometry.update(new Rotation2d(), wheelPositions);
++    Pose2d pose = m_odometry.update(new Rotation2d(), wheelPositions);
+ 
+     assertAll(
+         () -> assertEquals(0.3536, pose.getX(), 0.01),
+@@ -64,11 +65,11 @@ class MecanumDriveOdometryTest {
+   void test90degreeTurn() {
+     // This is a 90 degree turn about the point between front left and rear left wheels
+     // fl -13.328649 fr 39.985946 rl -13.328649 rr 39.985946
+-    final var wheelPositions = new MecanumDriveWheelPositions(-13.328, 39.986, -13.329, 39.986);
++    final MecanumDriveWheelPositions wheelPositions = new MecanumDriveWheelPositions(-13.328, 39.986, -13.329, 39.986);
+     m_odometry.resetPosition(new Rotation2d(), new MecanumDriveWheelPositions(), new Pose2d());
+ 
+     m_odometry.update(new Rotation2d(), new MecanumDriveWheelPositions());
+-    final var pose = m_odometry.update(Rotation2d.fromDegrees(90.0), wheelPositions);
++    final Pose2d pose = m_odometry.update(Rotation2d.fromDegrees(90.0), wheelPositions);
+ 
+     assertAll(
+         () -> assertEquals(8.4855, pose.getX(), 0.01),
+@@ -78,13 +79,13 @@ class MecanumDriveOdometryTest {
+ 
+   @Test
+   void testGyroAngleReset() {
+-    var gyro = Rotation2d.fromDegrees(90.0);
+-    var fieldAngle = Rotation2d.fromDegrees(0.0);
++    Rotation2d gyro = Rotation2d.fromDegrees(90.0);
++    Rotation2d fieldAngle = Rotation2d.fromDegrees(0.0);
+     m_odometry.resetPosition(
+         gyro, new MecanumDriveWheelPositions(), new Pose2d(new Translation2d(), fieldAngle));
+-    var speeds = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
++    MecanumDriveWheelPositions speeds = new MecanumDriveWheelPositions(3.536, 3.536, 3.536, 3.536);
+     m_odometry.update(gyro, new MecanumDriveWheelPositions());
+-    var pose = m_odometry.update(gyro, speeds);
++    Pose2d pose = m_odometry.update(gyro, speeds);
+ 
+     assertAll(
+         () -> assertEquals(3.536, pose.getX(), 0.1),
+@@ -94,17 +95,17 @@ class MecanumDriveOdometryTest {
+ 
+   @Test
+   void testAccuracyFacingTrajectory() {
+-    var kinematics =
++    MecanumDriveKinematics kinematics =
+         new MecanumDriveKinematics(
+             new Translation2d(1, 1), new Translation2d(1, -1),
+             new Translation2d(-1, -1), new Translation2d(-1, 1));
+ 
+-    var wheelPositions = new MecanumDriveWheelPositions();
++    MecanumDriveWheelPositions wheelPositions = new MecanumDriveWheelPositions();
+ 
+-    var odometry =
++    MecanumDriveOdometry odometry =
+         new MecanumDriveOdometry(kinematics, new Rotation2d(), wheelPositions, new Pose2d());
+ 
+-    var trajectory =
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             List.of(
+                 new Pose2d(),
+@@ -115,7 +116,7 @@ class MecanumDriveOdometryTest {
+                 new Pose2d(10, 10, Rotation2d.fromDegrees(0))),
+             new TrajectoryConfig(0.5, 2));
+ 
+-    var rand = new Random(5190);
++    Random rand = new Random(5190);
+ 
+     final double dt = 0.02;
+     double t = 0.0;
+@@ -125,13 +126,13 @@ class MecanumDriveOdometryTest {
+     double odometryDistanceTravelled = 0;
+     double trajectoryDistanceTravelled = 0;
+     while (t <= trajectory.getTotalTimeSeconds()) {
+-      var groundTruthState = trajectory.sample(t);
++      Trajectory.State groundTruthState = trajectory.sample(t);
+ 
+       trajectoryDistanceTravelled +=
+           groundTruthState.velocityMetersPerSecond * dt
+               + 0.5 * groundTruthState.accelerationMetersPerSecondSq * dt * dt;
+ 
+-      var wheelSpeeds =
++      MecanumDriveWheelSpeeds wheelSpeeds =
+           kinematics.toWheelSpeeds(
+               new ChassisSpeeds(
+                   groundTruthState.velocityMetersPerSecond,
+@@ -149,9 +150,9 @@ class MecanumDriveOdometryTest {
+       wheelPositions.rearLeftMeters += wheelSpeeds.rearLeftMetersPerSecond * dt;
+       wheelPositions.rearRightMeters += wheelSpeeds.rearRightMetersPerSecond * dt;
+ 
+-      var lastPose = odometry.getPoseMeters();
++      Pose2d lastPose = odometry.getPoseMeters();
+ 
+-      var xHat =
++      Pose2d xHat =
+           odometry.update(
+               groundTruthState
+                   .poseMeters
+@@ -183,17 +184,17 @@ class MecanumDriveOdometryTest {
+ 
+   @Test
+   void testAccuracyFacingXAxis() {
+-    var kinematics =
++    MecanumDriveKinematics kinematics =
+         new MecanumDriveKinematics(
+             new Translation2d(1, 1), new Translation2d(1, -1),
+             new Translation2d(-1, -1), new Translation2d(-1, 1));
+ 
+-    var wheelPositions = new MecanumDriveWheelPositions();
++    MecanumDriveWheelPositions wheelPositions = new MecanumDriveWheelPositions();
+ 
+-    var odometry =
++    MecanumDriveOdometry odometry =
+         new MecanumDriveOdometry(kinematics, new Rotation2d(), wheelPositions, new Pose2d());
+ 
+-    var trajectory =
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             List.of(
+                 new Pose2d(),
+@@ -204,7 +205,7 @@ class MecanumDriveOdometryTest {
+                 new Pose2d(10, 10, Rotation2d.fromDegrees(0))),
+             new TrajectoryConfig(0.5, 2));
+ 
+-    var rand = new Random(5190);
++    Random rand = new Random(5190);
+ 
+     final double dt = 0.02;
+     double t = 0.0;
+@@ -214,13 +215,13 @@ class MecanumDriveOdometryTest {
+     double odometryDistanceTravelled = 0;
+     double trajectoryDistanceTravelled = 0;
+     while (t <= trajectory.getTotalTimeSeconds()) {
+-      var groundTruthState = trajectory.sample(t);
++      Trajectory.State groundTruthState = trajectory.sample(t);
+ 
+       trajectoryDistanceTravelled +=
+           groundTruthState.velocityMetersPerSecond * dt
+               + 0.5 * groundTruthState.accelerationMetersPerSecondSq * dt * dt;
+ 
+-      var wheelSpeeds =
++      MecanumDriveWheelSpeeds wheelSpeeds =
+           kinematics.toWheelSpeeds(
+               new ChassisSpeeds(
+                   groundTruthState.velocityMetersPerSecond
+@@ -239,9 +240,9 @@ class MecanumDriveOdometryTest {
+       wheelPositions.rearLeftMeters += wheelSpeeds.rearLeftMetersPerSecond * dt;
+       wheelPositions.rearRightMeters += wheelSpeeds.rearRightMetersPerSecond * dt;
+ 
+-      var lastPose = odometry.getPoseMeters();
++      Pose2d lastPose = odometry.getPoseMeters();
+ 
+-      var xHat = odometry.update(new Rotation2d(rand.nextGaussian() * 0.05), wheelPositions);
++      Pose2d xHat = odometry.update(new Rotation2d(rand.nextGaussian() * 0.05), wheelPositions);
+ 
+       odometryDistanceTravelled += lastPose.getTranslation().getDistance(xHat.getTranslation());
+ 
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveKinematicsTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveKinematicsTest.java
+index f429a68d8c5129cb2bb11f349e814da0cf410446..8a27c3cf0db20695226a47ccbda75fc5ca6ebea8 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveKinematicsTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveKinematicsTest.java
+@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ import org.junit.jupiter.api.Test;
+ 
+ class SwerveDriveKinematicsTest {
+@@ -26,7 +27,7 @@ class SwerveDriveKinematicsTest {
+   void testStraightLineInverseKinematics() { // test inverse kinematics going in a straight line
+ 
+     ChassisSpeeds speeds = new ChassisSpeeds(5, 0, 0);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(speeds);
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds);
+ 
+     assertAll(
+         () -> assertEquals(5.0, moduleStates[0].speedMetersPerSecond, kEpsilon),
+@@ -42,7 +43,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testStraightLineForwardKinematics() { // test forward kinematics going in a straight line
+     SwerveModuleState state = new SwerveModuleState(5.0, Rotation2d.fromDegrees(0.0));
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(state, state, state, state);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(state, state, state, state);
+ 
+     assertAll(
+         () -> assertEquals(5.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+@@ -54,7 +55,7 @@ class SwerveDriveKinematicsTest {
+   void testStraightLineForwardKinematicsWithDeltas() {
+     // test forward kinematics going in a straight line
+     SwerveModulePosition delta = new SwerveModulePosition(5.0, Rotation2d.fromDegrees(0.0));
+-    var twist = m_kinematics.toTwist2d(delta, delta, delta, delta);
++    Twist2d twist = m_kinematics.toTwist2d(delta, delta, delta, delta);
+ 
+     assertAll(
+         () -> assertEquals(5.0, twist.dx, kEpsilon),
+@@ -65,7 +66,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testStraightStrafeInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 5, 0);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(speeds);
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds);
+ 
+     assertAll(
+         () -> assertEquals(5.0, moduleStates[0].speedMetersPerSecond, kEpsilon),
+@@ -81,7 +82,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testStraightStrafeForwardKinematics() {
+     SwerveModuleState state = new SwerveModuleState(5.0, Rotation2d.fromDegrees(90.0));
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(state, state, state, state);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(state, state, state, state);
+ 
+     assertAll(
+         () -> assertEquals(0.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+@@ -92,7 +93,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testStraightStrafeForwardKinematicsWithDeltas() {
+     SwerveModulePosition delta = new SwerveModulePosition(5.0, Rotation2d.fromDegrees(90.0));
+-    var twist = m_kinematics.toTwist2d(delta, delta, delta, delta);
++    Twist2d twist = m_kinematics.toTwist2d(delta, delta, delta, delta);
+ 
+     assertAll(
+         () -> assertEquals(0.0, twist.dx, kEpsilon),
+@@ -104,7 +105,7 @@ class SwerveDriveKinematicsTest {
+   void testConserveWheelAngle() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 2 * Math.PI);
+     m_kinematics.toSwerveModuleStates(speeds);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(new ChassisSpeeds());
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(new ChassisSpeeds());
+ 
+     // Robot is stationary, but module angles are preserved.
+ 
+@@ -126,7 +127,7 @@ class SwerveDriveKinematicsTest {
+     Rotation2d bl = new Rotation2d(Math.PI);
+     Rotation2d br = new Rotation2d(3 * Math.PI / 2);
+     m_kinematics.resetHeadings(fl, fr, bl, br);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(new ChassisSpeeds());
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(new ChassisSpeeds());
+ 
+     // Robot is stationary, but module angles are preserved.
+ 
+@@ -144,7 +145,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testTurnInPlaceInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 2 * Math.PI);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(speeds);
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds);
+ 
+     /*
+     The circumference of the wheels about the COR is π * diameter, or 2π * radius
+@@ -171,7 +172,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModuleState blState = new SwerveModuleState(106.629, Rotation2d.fromDegrees(-135));
+     SwerveModuleState brState = new SwerveModuleState(106.629, Rotation2d.fromDegrees(-45));
+ 
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
+ 
+     assertAll(
+         () -> assertEquals(0.0, chassisSpeeds.vxMetersPerSecond, kEpsilon),
+@@ -186,7 +187,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModulePosition blDelta = new SwerveModulePosition(106.629, Rotation2d.fromDegrees(-135));
+     SwerveModulePosition brDelta = new SwerveModulePosition(106.629, Rotation2d.fromDegrees(-45));
+ 
+-    var twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
++    Twist2d twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
+ 
+     assertAll(
+         () -> assertEquals(0.0, twist.dx, kEpsilon),
+@@ -197,7 +198,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testOffCenterCORRotationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 2 * Math.PI);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(speeds, m_fl);
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds, m_fl);
+ 
+     /*
+     This one is a bit trickier. Because we are rotating about the front-left wheel,
+@@ -226,7 +227,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModuleState blState = new SwerveModuleState(150.796, Rotation2d.fromDegrees(-90));
+     SwerveModuleState brState = new SwerveModuleState(213.258, Rotation2d.fromDegrees(-45));
+ 
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
+ 
+     /*
+     We already know that our omega should be 2π from the previous test. Next, we need to determine
+@@ -250,7 +251,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModulePosition blDelta = new SwerveModulePosition(150.796, Rotation2d.fromDegrees(-90));
+     SwerveModulePosition brDelta = new SwerveModulePosition(213.258, Rotation2d.fromDegrees(-45));
+ 
+-    var twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
++    Twist2d twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
+ 
+     /*
+     We already know that our omega should be 2π from the previous test. Next, we need to determine
+@@ -289,7 +290,7 @@ class SwerveDriveKinematicsTest {
+   @Test
+   void testOffCenterCORRotationAndTranslationInverseKinematics() {
+     ChassisSpeeds speeds = new ChassisSpeeds(0.0, 3.0, 1.5);
+-    var moduleStates = m_kinematics.toSwerveModuleStates(speeds, new Translation2d(24, 0));
++    SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds, new Translation2d(24, 0));
+ 
+     // By equation (13.14) from state-space guide, our wheels/angles will be as follows,
+     // (+-1 degree or speed):
+@@ -300,7 +301,7 @@ class SwerveDriveKinematicsTest {
+           new SwerveModuleState(54.08, Rotation2d.fromDegrees(-109.44)),
+           new SwerveModuleState(54.08, Rotation2d.fromDegrees(-70.56))
+         };
+-    var stateTolerance = new SwerveModuleState(0.1, Rotation2d.fromDegrees(0.1));
++    SwerveModuleState stateTolerance = new SwerveModuleState(0.1, Rotation2d.fromDegrees(0.1));
+ 
+     for (int i = 0; i < expectedStates.length; i++) {
+       assertModuleState(expectedStates[i], moduleStates[i], stateTolerance);
+@@ -314,7 +315,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModuleState blState = new SwerveModuleState(54.08, Rotation2d.fromDegrees(-109.44));
+     SwerveModuleState brState = new SwerveModuleState(54.08, Rotation2d.fromDegrees(-70.56));
+ 
+-    var chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
++    ChassisSpeeds chassisSpeeds = m_kinematics.toChassisSpeeds(flState, frState, blState, brState);
+ 
+     /*
+     From equation (13.17), we know that chassis motion is th dot product of the
+@@ -338,7 +339,7 @@ class SwerveDriveKinematicsTest {
+     SwerveModulePosition blDelta = new SwerveModulePosition(54.08, Rotation2d.fromDegrees(-109.44));
+     SwerveModulePosition brDelta = new SwerveModulePosition(54.08, Rotation2d.fromDegrees(-70.56));
+ 
+-    var twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
++    Twist2d twist = m_kinematics.toTwist2d(flDelta, frDelta, blDelta, brDelta);
+ 
+     /*
+     From equation (13.17), we know that chassis motion is th dot product of the
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
+index 716da0398e8ee471aa761b0d1d37d08f16472c8a..6a08e7960ea1e287c63bedd85ecff1e2212b87d3 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
+@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.trajectory.TrajectoryConfig;
+ import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+ import java.util.List;
+@@ -49,7 +50,7 @@ class SwerveDriveOdometryTest {
+           new SwerveModulePosition(),
+           new SwerveModulePosition()
+         });
+-    var pose = m_odometry.update(new Rotation2d(), wheelDeltas);
++    Pose2d pose = m_odometry.update(new Rotation2d(), wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(5.0 / 10.0, pose.getX(), 0.01),
+@@ -71,10 +72,10 @@ class SwerveDriveOdometryTest {
+       new SwerveModulePosition(18.85, Rotation2d.fromDegrees(-90)),
+       new SwerveModulePosition(42.15, Rotation2d.fromDegrees(-26.565))
+     };
+-    final var zero = new SwerveModulePosition();
++    final SwerveModulePosition zero = new SwerveModulePosition();
+ 
+     m_odometry.update(new Rotation2d(), new SwerveModulePosition[] {zero, zero, zero, zero});
+-    final var pose = m_odometry.update(Rotation2d.fromDegrees(90.0), wheelDeltas);
++    final Pose2d pose = m_odometry.update(Rotation2d.fromDegrees(90.0), wheelDeltas);
+ 
+     assertAll(
+         () -> assertEquals(12.0, pose.getX(), 0.01),
+@@ -84,16 +85,16 @@ class SwerveDriveOdometryTest {
+ 
+   @Test
+   void testGyroAngleReset() {
+-    var gyro = Rotation2d.fromDegrees(90.0);
+-    var fieldAngle = Rotation2d.fromDegrees(0.0);
++    Rotation2d gyro = Rotation2d.fromDegrees(90.0);
++    Rotation2d fieldAngle = Rotation2d.fromDegrees(0.0);
+     m_odometry.resetPosition(
+         gyro,
+         new SwerveModulePosition[] {zero, zero, zero, zero},
+         new Pose2d(new Translation2d(), fieldAngle));
+-    var delta = new SwerveModulePosition();
++    SwerveModulePosition delta = new SwerveModulePosition();
+     m_odometry.update(gyro, new SwerveModulePosition[] {delta, delta, delta, delta});
+     delta = new SwerveModulePosition(1.0, Rotation2d.fromDegrees(0));
+-    var pose = m_odometry.update(gyro, new SwerveModulePosition[] {delta, delta, delta, delta});
++    Pose2d pose = m_odometry.update(gyro, new SwerveModulePosition[] {delta, delta, delta, delta});
+ 
+     assertAll(
+         () -> assertEquals(1.0, pose.getX(), 0.1),
+@@ -103,13 +104,13 @@ class SwerveDriveOdometryTest {
+ 
+   @Test
+   void testAccuracyFacingTrajectory() {
+-    var kinematics =
++    SwerveDriveKinematics kinematics =
+         new SwerveDriveKinematics(
+             new Translation2d(1, 1),
+             new Translation2d(1, -1),
+             new Translation2d(-1, -1),
+             new Translation2d(-1, 1));
+-    var odometry =
++    SwerveDriveOdometry odometry =
+         new SwerveDriveOdometry(
+             kinematics, new Rotation2d(), new SwerveModulePosition[] {zero, zero, zero, zero});
+ 
+@@ -118,7 +119,7 @@ class SwerveDriveOdometryTest {
+     SwerveModulePosition bl = new SwerveModulePosition();
+     SwerveModulePosition br = new SwerveModulePosition();
+ 
+-    var trajectory =
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             List.of(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45)),
+@@ -128,7 +129,7 @@ class SwerveDriveOdometryTest {
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45))),
+             new TrajectoryConfig(0.5, 2));
+ 
+-    var rand = new Random(4915);
++    Random rand = new Random(4915);
+ 
+     final double dt = 0.02;
+     double t = 0.0;
+@@ -136,16 +137,16 @@ class SwerveDriveOdometryTest {
+     double maxError = Double.NEGATIVE_INFINITY;
+     double errorSum = 0;
+     while (t <= trajectory.getTotalTimeSeconds()) {
+-      var groundTruthState = trajectory.sample(t);
++      Trajectory.State groundTruthState = trajectory.sample(t);
+ 
+-      var moduleStates =
++      SwerveModuleState[] moduleStates =
+           kinematics.toSwerveModuleStates(
+               new ChassisSpeeds(
+                   groundTruthState.velocityMetersPerSecond,
+                   0.0,
+                   groundTruthState.velocityMetersPerSecond
+                       * groundTruthState.curvatureRadPerMeter));
+-      for (var moduleState : moduleStates) {
++      for (SwerveModuleState moduleState : moduleStates) {
+         moduleState.angle = moduleState.angle.plus(new Rotation2d(rand.nextGaussian() * 0.005));
+         moduleState.speedMetersPerSecond += rand.nextGaussian() * 0.1;
+       }
+@@ -160,7 +161,7 @@ class SwerveDriveOdometryTest {
+       bl.angle = moduleStates[2].angle;
+       br.angle = moduleStates[3].angle;
+ 
+-      var xHat =
++      Pose2d xHat =
+           odometry.update(
+               groundTruthState
+                   .poseMeters
+@@ -193,13 +194,13 @@ class SwerveDriveOdometryTest {
+ 
+   @Test
+   void testAccuracyFacingXAxis() {
+-    var kinematics =
++    SwerveDriveKinematics kinematics =
+         new SwerveDriveKinematics(
+             new Translation2d(1, 1),
+             new Translation2d(1, -1),
+             new Translation2d(-1, -1),
+             new Translation2d(-1, 1));
+-    var odometry =
++    SwerveDriveOdometry odometry =
+         new SwerveDriveOdometry(
+             kinematics, new Rotation2d(), new SwerveModulePosition[] {zero, zero, zero, zero});
+ 
+@@ -208,7 +209,7 @@ class SwerveDriveOdometryTest {
+     SwerveModulePosition bl = new SwerveModulePosition();
+     SwerveModulePosition br = new SwerveModulePosition();
+ 
+-    var trajectory =
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             List.of(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45)),
+@@ -218,7 +219,7 @@ class SwerveDriveOdometryTest {
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45))),
+             new TrajectoryConfig(0.5, 2));
+ 
+-    var rand = new Random(4915);
++    Random rand = new Random(4915);
+ 
+     final double dt = 0.02;
+     double t = 0.0;
+@@ -226,7 +227,7 @@ class SwerveDriveOdometryTest {
+     double maxError = Double.NEGATIVE_INFINITY;
+     double errorSum = 0;
+     while (t <= trajectory.getTotalTimeSeconds()) {
+-      var groundTruthState = trajectory.sample(t);
++      Trajectory.State groundTruthState = trajectory.sample(t);
+ 
+       fl.distanceMeters +=
+           groundTruthState.velocityMetersPerSecond * dt
+@@ -246,7 +247,7 @@ class SwerveDriveOdometryTest {
+       bl.angle = groundTruthState.poseMeters.getRotation();
+       br.angle = groundTruthState.poseMeters.getRotation();
+ 
+-      var xHat =
++      Pose2d xHat =
+           odometry.update(
+               new Rotation2d(rand.nextGaussian() * 0.05),
+               new SwerveModulePosition[] {fl, fr, bl, br});
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveModuleStateTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveModuleStateTest.java
+index 01815be00da09945ebd3919d470b3cf4f1886361..d2570791f901f29f861c7db72822deed2a28a995 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveModuleStateTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveModuleStateTest.java
+@@ -15,17 +15,17 @@ class SwerveModuleStateTest {
+ 
+   @Test
+   void testOptimize() {
+-    var angleA = Rotation2d.fromDegrees(45);
+-    var refA = new SwerveModuleState(-2.0, Rotation2d.fromDegrees(180));
+-    var optimizedA = SwerveModuleState.optimize(refA, angleA);
++    Rotation2d angleA = Rotation2d.fromDegrees(45);
++    SwerveModuleState refA = new SwerveModuleState(-2.0, Rotation2d.fromDegrees(180));
++    SwerveModuleState optimizedA = SwerveModuleState.optimize(refA, angleA);
+ 
+     assertAll(
+         () -> assertEquals(2.0, optimizedA.speedMetersPerSecond, kEpsilon),
+         () -> assertEquals(0.0, optimizedA.angle.getDegrees(), kEpsilon));
+ 
+-    var angleB = Rotation2d.fromDegrees(-50);
+-    var refB = new SwerveModuleState(4.7, Rotation2d.fromDegrees(41));
+-    var optimizedB = SwerveModuleState.optimize(refB, angleB);
++    Rotation2d angleB = Rotation2d.fromDegrees(-50);
++    SwerveModuleState refB = new SwerveModuleState(4.7, Rotation2d.fromDegrees(41));
++    SwerveModuleState optimizedB = SwerveModuleState.optimize(refB, angleB);
+ 
+     assertAll(
+         () -> assertEquals(-4.7, optimizedB.speedMetersPerSecond, kEpsilon),
+@@ -34,17 +34,17 @@ class SwerveModuleStateTest {
+ 
+   @Test
+   void testNoOptimize() {
+-    var angleA = Rotation2d.fromDegrees(0);
+-    var refA = new SwerveModuleState(2.0, Rotation2d.fromDegrees(89));
+-    var optimizedA = SwerveModuleState.optimize(refA, angleA);
++    Rotation2d angleA = Rotation2d.fromDegrees(0);
++    SwerveModuleState refA = new SwerveModuleState(2.0, Rotation2d.fromDegrees(89));
++    SwerveModuleState optimizedA = SwerveModuleState.optimize(refA, angleA);
+ 
+     assertAll(
+         () -> assertEquals(2.0, optimizedA.speedMetersPerSecond, kEpsilon),
+         () -> assertEquals(89.0, optimizedA.angle.getDegrees(), kEpsilon));
+ 
+-    var angleB = Rotation2d.fromDegrees(0);
+-    var refB = new SwerveModuleState(-2.0, Rotation2d.fromDegrees(-2));
+-    var optimizedB = SwerveModuleState.optimize(refB, angleB);
++    Rotation2d angleB = Rotation2d.fromDegrees(0);
++    SwerveModuleState refB = new SwerveModuleState(-2.0, Rotation2d.fromDegrees(-2));
++    SwerveModuleState optimizedB = SwerveModuleState.optimize(refB, angleB);
+ 
+     assertAll(
+         () -> assertEquals(-2.0, optimizedB.speedMetersPerSecond, kEpsilon),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java b/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
+index ecff33391992b770973aaaee604fbce059f424d3..4d7f7aea391c01841a516501b59843cee837dc5b 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
+@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ import edu.wpi.first.math.spline.SplineParameterizer.MalformedSplineException;
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -27,18 +28,18 @@ class CubicHermiteSplineTest {
+     // var start = System.nanoTime();
+ 
+     // Generate and parameterize the spline.
+-    var controlVectors =
++    Spline.ControlVector[] controlVectors =
+         SplineHelper.getCubicControlVectorsFromWaypoints(
+             a, waypoints.toArray(new Translation2d[0]), b);
+-    var splines =
++    CubicHermiteSpline[] splines =
+         SplineHelper.getCubicSplinesFromControlVectors(
+             controlVectors[0], waypoints.toArray(new Translation2d[0]), controlVectors[1]);
+ 
+-    var poses = new ArrayList<PoseWithCurvature>();
++    ArrayList<PoseWithCurvature> poses = new ArrayList<PoseWithCurvature>();
+ 
+     poses.add(splines[0].getPoint(0.0));
+ 
+-    for (var spline : splines) {
++    for (CubicHermiteSpline spline : splines) {
+       poses.addAll(SplineParameterizer.parameterize(spline));
+     }
+ 
+@@ -49,11 +50,11 @@ class CubicHermiteSplineTest {
+     // var durationMicroseconds = (end - start) / 1000.0;
+ 
+     for (int i = 0; i < poses.size() - 1; i++) {
+-      var p0 = poses.get(i);
+-      var p1 = poses.get(i + 1);
++      PoseWithCurvature p0 = poses.get(i);
++      PoseWithCurvature p1 = poses.get(i + 1);
+ 
+       // Make sure the twist is under the tolerance defined by the Spline class.
+-      var twist = p0.poseMeters.log(p1.poseMeters);
++      Twist2d twist = p0.poseMeters.log(p1.poseMeters);
+       assertAll(
+           () -> assertTrue(Math.abs(twist.dx) < kMaxDx),
+           () -> assertTrue(Math.abs(twist.dy) < kMaxDy),
+@@ -72,9 +73,9 @@ class CubicHermiteSplineTest {
+ 
+     // Check interior waypoints
+     boolean interiorsGood = true;
+-    for (var waypoint : waypoints) {
++    for (Translation2d waypoint : waypoints) {
+       boolean found = false;
+-      for (var state : poses) {
++      for (PoseWithCurvature state : poses) {
+         if (waypoint.getDistance(state.poseMeters.getTranslation()) == 0) {
+           found = true;
+         }
+@@ -102,28 +103,28 @@ class CubicHermiteSplineTest {
+ 
+   @Test
+   void testSCurve() {
+-    var start = new Pose2d(0, 0, Rotation2d.fromDegrees(90.0));
++    Pose2d start = new Pose2d(0, 0, Rotation2d.fromDegrees(90.0));
+     ArrayList<Translation2d> waypoints = new ArrayList<>();
+     waypoints.add(new Translation2d(1, 1));
+     waypoints.add(new Translation2d(2, -1));
+-    var end = new Pose2d(3, 0, Rotation2d.fromDegrees(90.0));
++    Pose2d end = new Pose2d(3, 0, Rotation2d.fromDegrees(90.0));
+ 
+     run(start, waypoints, end);
+   }
+ 
+   @Test
+   void testOneInterior() {
+-    var start = new Pose2d(0, 0, Rotation2d.fromDegrees(0.0));
++    Pose2d start = new Pose2d(0, 0, Rotation2d.fromDegrees(0.0));
+     ArrayList<Translation2d> waypoints = new ArrayList<>();
+     waypoints.add(new Translation2d(2.0, 0.0));
+-    var end = new Pose2d(4, 0, Rotation2d.fromDegrees(0.0));
++    Pose2d end = new Pose2d(4, 0, Rotation2d.fromDegrees(0.0));
+ 
+     run(start, waypoints, end);
+   }
+ 
+   @Test
+   void testWindyPath() {
+-    final var start = new Pose2d(0, 0, Rotation2d.fromDegrees(0.0));
++    final Pose2d start = new Pose2d(0, 0, Rotation2d.fromDegrees(0.0));
+     final ArrayList<Translation2d> waypoints = new ArrayList<>();
+     waypoints.add(new Translation2d(0.5, 0.5));
+     waypoints.add(new Translation2d(0.5, 0.5));
+@@ -131,7 +132,7 @@ class CubicHermiteSplineTest {
+     waypoints.add(new Translation2d(1.5, 0.5));
+     waypoints.add(new Translation2d(2.0, 0.0));
+     waypoints.add(new Translation2d(2.5, 0.5));
+-    final var end = new Pose2d(3.0, 0.0, Rotation2d.fromDegrees(0.0));
++    final Pose2d end = new Pose2d(3.0, 0.0, Rotation2d.fromDegrees(0.0));
+ 
+     run(start, waypoints, end);
+   }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java b/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
+index 6435dd5ed45d6f9d81b6891432fa3e127e7c7d37..e19b80c49d0894d8683dbb10d46e37cd5bfa60aa 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
+@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
++import edu.wpi.first.math.geometry.Twist2d;
+ import edu.wpi.first.math.spline.SplineParameterizer.MalformedSplineException;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+@@ -25,8 +26,8 @@ class QuinticHermiteSplineTest {
+     // var start = System.nanoTime();
+ 
+     // Generate and parameterize the spline.
+-    var spline = SplineHelper.getQuinticSplinesFromWaypoints(List.of(a, b))[0];
+-    var poses = SplineParameterizer.parameterize(spline);
++    QuinticHermiteSpline spline = SplineHelper.getQuinticSplinesFromWaypoints(List.of(a, b))[0];
++    List<PoseWithCurvature> poses = SplineParameterizer.parameterize(spline);
+ 
+     // End the timer.
+     // var end = System.nanoTime();
+@@ -35,11 +36,11 @@ class QuinticHermiteSplineTest {
+     // var durationMicroseconds = (end - start) / 1000.0;
+ 
+     for (int i = 0; i < poses.size() - 1; i++) {
+-      var p0 = poses.get(i);
+-      var p1 = poses.get(i + 1);
++      PoseWithCurvature p0 = poses.get(i);
++      PoseWithCurvature p1 = poses.get(i + 1);
+ 
+       // Make sure the twist is under the tolerance defined by the Spline class.
+-      var twist = p0.poseMeters.log(p1.poseMeters);
++      Twist2d twist = p0.poseMeters.log(p1.poseMeters);
+       assertAll(
+           () -> assertTrue(Math.abs(twist.dx) < kMaxDx),
+           () -> assertTrue(Math.abs(twist.dy) < kMaxDy),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/CentripetalAccelerationConstraintTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/CentripetalAccelerationConstraintTest.java
+index fa2314edd0a42c83af20b30004956be37e083c13..11df443086659e25b4b6b295c8de1186d9e3c1b9 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/CentripetalAccelerationConstraintTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/CentripetalAccelerationConstraintTest.java
+@@ -15,18 +15,18 @@ class CentripetalAccelerationConstraintTest {
+   @Test
+   void testCentripetalAccelerationConstraint() {
+     double maxCentripetalAcceleration = Units.feetToMeters(7.0); // 7 feet per second squared
+-    var constraint = new CentripetalAccelerationConstraint(maxCentripetalAcceleration);
++    CentripetalAccelerationConstraint constraint = new CentripetalAccelerationConstraint(maxCentripetalAcceleration);
+ 
+     Trajectory trajectory =
+         TrajectoryGeneratorTest.getTrajectory(Collections.singletonList(constraint));
+ 
+-    var duration = trajectory.getTotalTimeSeconds();
+-    var t = 0.0;
+-    var dt = 0.02;
++    double duration = trajectory.getTotalTimeSeconds();
++    double t = 0.0;
++    double dt = 0.02;
+ 
+     while (t < duration) {
+-      var point = trajectory.sample(t);
+-      var centripetalAcceleration =
++      Trajectory.State point = trajectory.sample(t);
++      double centripetalAcceleration =
+           Math.pow(point.velocityMetersPerSecond, 2) * point.curvatureRadPerMeter;
+ 
+       t += dt;
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveKinematicsConstraintTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveKinematicsConstraintTest.java
+index bcc3c16f42e1f5fa5fb351b0b3206ff837e5920c..eece13c7b52d93ab9d720d9cce5e146d6033aa9b 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveKinematicsConstraintTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveKinematicsConstraintTest.java
+@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
++import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+ import edu.wpi.first.math.trajectory.constraint.DifferentialDriveKinematicsConstraint;
+ import edu.wpi.first.math.util.Units;
+ import java.util.Collections;
+@@ -18,25 +19,25 @@ class DifferentialDriveKinematicsConstraintTest {
+   @Test
+   void testDifferentialDriveKinematicsConstraint() {
+     double maxVelocity = Units.feetToMeters(12.0); // 12 feet per second
+-    var kinematics = new DifferentialDriveKinematics(Units.inchesToMeters(27));
+-    var constraint = new DifferentialDriveKinematicsConstraint(kinematics, maxVelocity);
++    DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(Units.inchesToMeters(27));
++    DifferentialDriveKinematicsConstraint constraint = new DifferentialDriveKinematicsConstraint(kinematics, maxVelocity);
+ 
+     Trajectory trajectory =
+         TrajectoryGeneratorTest.getTrajectory(Collections.singletonList(constraint));
+ 
+-    var duration = trajectory.getTotalTimeSeconds();
+-    var t = 0.0;
+-    var dt = 0.02;
++    double duration = trajectory.getTotalTimeSeconds();
++    double t = 0.0;
++    double dt = 0.02;
+ 
+     while (t < duration) {
+-      var point = trajectory.sample(t);
+-      var chassisSpeeds =
++      Trajectory.State point = trajectory.sample(t);
++      ChassisSpeeds chassisSpeeds =
+           new ChassisSpeeds(
+               point.velocityMetersPerSecond,
+               0,
+               point.velocityMetersPerSecond * point.curvatureRadPerMeter);
+ 
+-      var wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
++      DifferentialDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+ 
+       t += dt;
+       assertAll(
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveVoltageConstraintTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveVoltageConstraintTest.java
+index 58ee8305b16fb99dda4d99e41f66cf1fec173de3..e1af0c6df4482abdfe747bc78eabfddee8cb509a 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveVoltageConstraintTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/DifferentialDriveVoltageConstraintTest.java
+@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.kinematics.ChassisSpeeds;
+ import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
++import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+ import edu.wpi.first.math.trajectory.constraint.DifferentialDriveVoltageConstraint;
+ import java.util.ArrayList;
+ import java.util.Collections;
+@@ -22,27 +23,27 @@ class DifferentialDriveVoltageConstraintTest {
+   @Test
+   void testDifferentialDriveVoltageConstraint() {
+     // Pick an unreasonably large kA to ensure the constraint has to do some work
+-    var feedforward = new SimpleMotorFeedforward(1, 1, 3);
+-    var kinematics = new DifferentialDriveKinematics(0.5);
++    SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(1, 1, 3);
++    DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(0.5);
+     double maxVoltage = 10;
+-    var constraint = new DifferentialDriveVoltageConstraint(feedforward, kinematics, maxVoltage);
++    DifferentialDriveVoltageConstraint constraint = new DifferentialDriveVoltageConstraint(feedforward, kinematics, maxVoltage);
+ 
+     Trajectory trajectory =
+         TrajectoryGeneratorTest.getTrajectory(Collections.singletonList(constraint));
+ 
+-    var duration = trajectory.getTotalTimeSeconds();
+-    var t = 0.0;
+-    var dt = 0.02;
++    double duration = trajectory.getTotalTimeSeconds();
++    double t = 0.0;
++    double dt = 0.02;
+ 
+     while (t < duration) {
+-      var point = trajectory.sample(t);
+-      var chassisSpeeds =
++      Trajectory.State point = trajectory.sample(t);
++      ChassisSpeeds chassisSpeeds =
+           new ChassisSpeeds(
+               point.velocityMetersPerSecond,
+               0,
+               point.velocityMetersPerSecond * point.curvatureRadPerMeter);
+ 
+-      var wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
++      DifferentialDriveWheelSpeeds wheelSpeeds = kinematics.toWheelSpeeds(chassisSpeeds);
+ 
+       t += dt;
+ 
+@@ -74,14 +75,14 @@ class DifferentialDriveVoltageConstraintTest {
+ 
+   @Test
+   void testEndpointHighCurvature() {
+-    var feedforward = new SimpleMotorFeedforward(1, 1, 3);
++    SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(1, 1, 3);
+ 
+     // Large trackwidth - need to test with radius of curvature less than half of trackwidth
+-    var kinematics = new DifferentialDriveKinematics(3);
++    DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(3);
+     double maxVoltage = 10;
+-    var constraint = new DifferentialDriveVoltageConstraint(feedforward, kinematics, maxVoltage);
++    DifferentialDriveVoltageConstraint constraint = new DifferentialDriveVoltageConstraint(feedforward, kinematics, maxVoltage);
+ 
+-    var config = new TrajectoryConfig(12, 12).addConstraint(constraint);
++    TrajectoryConfig config = new TrajectoryConfig(12, 12).addConstraint(constraint);
+ 
+     // Radius of curvature should be ~1 meter.
+     assertDoesNotThrow(
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
+index 2e80d7b2ef470ba12c3460322f0360acc982cda7..a5fa1b9427ce4b9602d3d22f50406b2486027dcf 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
+@@ -15,25 +15,25 @@ import org.junit.jupiter.api.Test;
+ class TrajectoryConcatenateTest {
+   @Test
+   void testStates() {
+-    var t1 =
++    Trajectory t1 =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(),
+             List.of(),
+             new Pose2d(1, 1, new Rotation2d()),
+             new TrajectoryConfig(2, 2));
+ 
+-    var t2 =
++    Trajectory t2 =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(1, 1, new Rotation2d()),
+             List.of(),
+             new Pose2d(2, 2, Rotation2d.fromDegrees(45)),
+             new TrajectoryConfig(2, 2));
+ 
+-    var t = t1.concatenate(t2);
++    Trajectory t = t1.concatenate(t2);
+ 
+     double time = -1.0;
+     for (int i = 0; i < t.getStates().size(); ++i) {
+-      var state = t.getStates().get(i);
++      Trajectory.State state = t.getStates().get(i);
+ 
+       // Make sure that the timestamps are strictly increasing.
+       assertTrue(state.timeSeconds > time);
+@@ -43,7 +43,7 @@ class TrajectoryConcatenateTest {
+       if (i < t1.getStates().size()) {
+         assertEquals(state, t1.getStates().get(i));
+       } else {
+-        var st = t2.getStates().get(i - t1.getStates().size() + 1);
++        Trajectory.State st = t2.getStates().get(i - t1.getStates().size() + 1);
+         st.timeSeconds += t1.getTotalTimeSeconds();
+         assertEquals(state, st);
+       }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
+index 4b0f3fc158cd0db9d424c2b62daed00f0ce191a7..280e6d84401fdf40f77fc1cf422434a090abcda3 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
+@@ -25,12 +25,12 @@ class TrajectoryGeneratorTest {
+     final double maxAccel = feetToMeters(12);
+ 
+     // 2018 cross scale auto waypoints.
+-    var sideStart =
++    Pose2d sideStart =
+         new Pose2d(feetToMeters(1.54), feetToMeters(23.23), Rotation2d.fromDegrees(-180));
+-    var crossScale =
++    Pose2d crossScale =
+         new Pose2d(feetToMeters(23.7), feetToMeters(6.8), Rotation2d.fromDegrees(-160));
+ 
+-    var waypoints = new ArrayList<Pose2d>();
++    ArrayList<Pose2d> waypoints = new ArrayList<Pose2d>();
+     waypoints.add(sideStart);
+     waypoints.add(
+         sideStart.plus(
+@@ -58,7 +58,7 @@ class TrajectoryGeneratorTest {
+     double dt = 0.02;
+ 
+     while (t < duration) {
+-      var point = trajectory.sample(t);
++      Trajectory.State point = trajectory.sample(t);
+       t += dt;
+       assertAll(
+           () -> assertTrue(Math.abs(point.velocityMetersPerSecond) < feetToMeters(12.0) + 0.05),
+@@ -70,7 +70,7 @@ class TrajectoryGeneratorTest {
+ 
+   @Test
+   void testMalformedTrajectory() {
+-    var traj =
++    Trajectory traj =
+         TrajectoryGenerator.generateTrajectory(
+             List.of(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(0)),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
+index 6268768d84f800088f56c5edcf8b1811a709c462..391d38f3d0bc846ea65510825e4d01aba2a8540b 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
+@@ -16,12 +16,12 @@ import org.junit.jupiter.api.Test;
+ class TrajectoryTransformTest {
+   @Test
+   void testTransformBy() {
+-    var config = new TrajectoryConfig(3, 3);
+-    var trajectory =
++    TrajectoryConfig config = new TrajectoryConfig(3, 3);
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(), List.of(), new Pose2d(1, 1, Rotation2d.fromDegrees(90)), config);
+ 
+-    var transformedTrajectory =
++    Trajectory transformedTrajectory =
+         trajectory.transformBy(
+             new Transform2d(new Translation2d(1, 2), Rotation2d.fromDegrees(30)));
+ 
+@@ -34,15 +34,15 @@ class TrajectoryTransformTest {
+ 
+   @Test
+   void testRelativeTo() {
+-    var config = new TrajectoryConfig(3, 3);
+-    var trajectory =
++    TrajectoryConfig config = new TrajectoryConfig(3, 3);
++    Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(1, 2, Rotation2d.fromDegrees(30.0)),
+             List.of(),
+             new Pose2d(5, 7, Rotation2d.fromDegrees(90)),
+             config);
+ 
+-    var transformedTrajectory = trajectory.relativeTo(new Pose2d(1, 2, Rotation2d.fromDegrees(30)));
++    Trajectory transformedTrajectory = trajectory.relativeTo(new Pose2d(1, 2, Rotation2d.fromDegrees(30)));
+ 
+     // Test initial pose.
+     assertEquals(new Pose2d(), transformedTrajectory.sample(0).poseMeters);
+@@ -52,11 +52,11 @@ class TrajectoryTransformTest {
+ 
+   void testSameShapedTrajectory(List<Trajectory.State> statesA, List<Trajectory.State> statesB) {
+     for (int i = 0; i < statesA.size() - 1; i++) {
+-      var a1 = statesA.get(i).poseMeters;
+-      var a2 = statesA.get(i + 1).poseMeters;
++      Pose2d a1 = statesA.get(i).poseMeters;
++      Pose2d a2 = statesA.get(i + 1).poseMeters;
+ 
+-      var b1 = statesB.get(i).poseMeters;
+-      var b2 = statesB.get(i + 1).poseMeters;
++      Pose2d b1 = statesB.get(i).poseMeters;
++      Pose2d b2 = statesB.get(i + 1).poseMeters;
+ 
+       assertEquals(a2.relativeTo(a1), b2.relativeTo(b1));
+     }

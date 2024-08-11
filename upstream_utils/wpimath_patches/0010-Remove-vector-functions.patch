@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 12:53:51 -0400
+Subject: [PATCH 10/11] Remove vector functions
+
+---
+ .../first/math/geometry/Translation2d.java    | 22 -------------------
+ .../math/geometry/Translation2dTest.java      | 11 ----------
+ 2 files changed, 33 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+index e45c780cc9190e470fe09203a2bddfd154ba5ace..e246210b3da6f90a078977ca596ef1573bf6c29e 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+@@ -11,10 +11,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
+ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.math.VecBuilder;
+-import edu.wpi.first.math.Vector;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+-import edu.wpi.first.math.numbers.N2;
+ import java.util.Collections;
+ import java.util.Comparator;
+ import java.util.List;
+@@ -64,16 +61,6 @@ public class Translation2d
+     m_y = distance * angle.getSin();
+   }
+ 
+-  /**
+-   * Constructs a Translation2d from the provided translation vector's X and Y components. The
+-   * values are assumed to be in meters.
+-   *
+-   * @param vector The translation vector to represent.
+-   */
+-  public Translation2d(Vector<N2> vector) {
+-    this(vector.get(0), vector.get(1));
+-  }
+-
+   /**
+    * Calculates the distance between two translations in 2D space.
+    *
+@@ -106,15 +93,6 @@ public class Translation2d
+     return m_y;
+   }
+ 
+-  /**
+-   * Returns a vector representation of this translation.
+-   *
+-   * @return A Vector representation of this translation.
+-   */
+-  public Vector<N2> toVector() {
+-    return VecBuilder.fill(m_x, m_y);
+-  }
+-
+   /**
+    * Returns the norm, or distance from the origin to the translation.
+    *
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+index 3a496c7f7e7d09a43b6ea136947881e43ab3a4dc..201e716768c079b29178958a61fc63cae7dcd7c2 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+@@ -131,15 +131,4 @@ class Translation2dTest {
+     assertEquals(origin.nearest(Arrays.asList(translation1, translation2, translation3)), translation1);
+     assertEquals(origin.nearest(Arrays.asList(translation4, translation2, translation3)), translation2);
+   }
+-
+-  @Test
+-  void testToVector() {
+-    var vec = VecBuilder.fill(1.0, 2.0);
+-    var translation = new Translation2d(vec);
+-
+-    assertEquals(vec.get(0), translation.getX());
+-    assertEquals(vec.get(1), translation.getY());
+-
+-    assertEquals(vec, translation.toVector());
+-  }
+ }

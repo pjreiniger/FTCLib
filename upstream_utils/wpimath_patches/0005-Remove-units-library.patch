@@ -1,0 +1,1017 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 07:26:03 -0400
+Subject: [PATCH 05/11] Remove units library
+
+---
+ .../edu/wpi/first/math/geometry/Pose2d.java   | 16 ----
+ .../wpi/first/math/geometry/Rotation2d.java   | 13 ---
+ .../wpi/first/math/geometry/Transform2d.java  | 16 ----
+ .../first/math/geometry/Translation2d.java    | 13 ---
+ .../first/math/kinematics/ChassisSpeeds.java  | 95 -------------------
+ .../DifferentialDriveKinematics.java          | 15 ---
+ .../kinematics/DifferentialDriveOdometry.java | 51 ----------
+ .../DifferentialDriveWheelPositions.java      | 14 ---
+ .../DifferentialDriveWheelSpeeds.java         | 31 ------
+ .../MecanumDriveWheelPositions.java           | 20 ----
+ .../kinematics/MecanumDriveWheelSpeeds.java   | 40 --------
+ .../kinematics/SwerveDriveKinematics.java     | 56 -----------
+ .../math/kinematics/SwerveModulePosition.java | 14 ---
+ .../math/kinematics/SwerveModuleState.java    | 15 ---
+ .../math/trajectory/TrajectoryConfig.java     | 38 --------
+ .../math/trajectory/TrapezoidProfile.java     | 26 -----
+ .../wpi/first/math/geometry/Pose2dTest.java   | 10 --
+ .../first/math/geometry/Rotation2dTest.java   |  8 --
+ .../first/math/geometry/Transform2dTest.java  | 11 ---
+ .../math/kinematics/ChassisSpeedsTest.java    | 15 ---
+ 20 files changed, 517 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+index a900226071f3298b4bc703fa22da08dac51f2af4..ea8f835170079d5448537f2ff328d6e8d11a06cb 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+@@ -4,15 +4,11 @@
+ 
+ package edu.wpi.first.math.geometry;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import com.fasterxml.jackson.annotation.JsonAutoDetect;
+ import com.fasterxml.jackson.annotation.JsonCreator;
+ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ 
+ import java.util.Collections;
+ import java.util.Comparator;
+@@ -58,18 +54,6 @@ public class Pose2d implements Interpolatable<Pose2d> {
+     m_rotation = rotation;
+   }
+ 
+-  /**
+-   * Constructs a pose with x and y translations instead of a separate Translation2d. The X and Y
+-   * translations will be converted to and tracked as meters.
+-   *
+-   * @param x The x component of the translational component of the pose.
+-   * @param y The y component of the translational component of the pose.
+-   * @param rotation The rotational component of the pose.
+-   */
+-  public Pose2d(Measure<Distance> x, Measure<Distance> y, Rotation2d rotation) {
+-    this(x.in(Meters), y.in(Meters), rotation);
+-  }
+-
+   /**
+    * Transforms the pose by the given transformation and returns the new transformed pose.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+index 07948f5d00db4a500023f410413c705ba481e375..f4fa06fcdef05508ad7f9ce6b780a780eb0342c3 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+@@ -4,8 +4,6 @@
+ 
+ package edu.wpi.first.math.geometry;
+ 
+-import static edu.wpi.first.units.Units.Radians;
+-
+ import com.fasterxml.jackson.annotation.JsonAutoDetect;
+ import com.fasterxml.jackson.annotation.JsonCreator;
+ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+@@ -13,8 +11,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+ import edu.wpi.first.math.util.Units;
+-import edu.wpi.first.units.Angle;
+-import edu.wpi.first.units.Measure;
+ 
+ import java.util.Objects;
+ 
+@@ -70,15 +66,6 @@ public class Rotation2d
+     m_value = Math.atan2(m_sin, m_cos);
+   }
+ 
+-  /**
+-   * Constructs a Rotation2d with the given angle.
+-   *
+-   * @param angle The angle of the rotation.
+-   */
+-  public Rotation2d(Measure<Angle> angle) {
+-    this(angle.in(Radians));
+-  }
+-
+   /**
+    * Constructs and returns a Rotation2d with the given radian value.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
+index bb69d4b61d96e0b337c9c050158d07fb887b7cfc..04119b954d5ae19e8de7fba1b080862d07754ec0 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
+@@ -4,10 +4,6 @@
+ 
+ package edu.wpi.first.math.geometry;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ import java.util.Objects;
+ 
+ /** Represents a transformation for a Pose2d in the pose's frame. */
+@@ -56,18 +52,6 @@ public class Transform2d {
+     m_rotation = rotation;
+   }
+ 
+-  /**
+-   * Constructs a transform with x and y translations instead of a separate Translation2d. The X and
+-   * Y translations will be converted to and tracked as meters.
+-   *
+-   * @param x The x component of the translational component of the transform.
+-   * @param y The y component of the translational component of the transform.
+-   * @param rotation The rotational component of the transform.
+-   */
+-  public Transform2d(Measure<Distance> x, Measure<Distance> y, Rotation2d rotation) {
+-    this(x.in(Meters), y.in(Meters), rotation);
+-  }
+-
+   /** Constructs the identity transform -- maps an initial pose to itself. */
+   public Transform2d() {
+     m_translation = new Translation2d();
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+index 40166bc2e48233c67f7ea4a1be503bf44c6dfa51..e45c780cc9190e470fe09203a2bddfd154ba5ace 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+@@ -15,8 +15,6 @@ import edu.wpi.first.math.VecBuilder;
+ import edu.wpi.first.math.Vector;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+ import edu.wpi.first.math.numbers.N2;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ import java.util.Collections;
+ import java.util.Comparator;
+ import java.util.List;
+@@ -66,17 +64,6 @@ public class Translation2d
+     m_y = distance * angle.getSin();
+   }
+ 
+-  /**
+-   * Constructs a Translation2d with the X and Y components equal to the provided values. The X and
+-   * Y components will be converted to and tracked as meters.
+-   *
+-   * @param x The x component of the translation.
+-   * @param y The y component of the translation.
+-   */
+-  public Translation2d(Measure<Distance> x, Measure<Distance> y) {
+-    this(x.in(Meters), y.in(Meters));
+-  }
+-
+   /**
+    * Constructs a Translation2d from the provided translation vector's X and Y components. The
+    * values are assumed to be in meters.
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+index 5e42608b3f8450e99e97f2cf10324a56c5c22208..92d7fb7585cc31761fb2e13b5b7c1ee5a7965aeb 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+@@ -4,19 +4,10 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-import static edu.wpi.first.units.Units.RadiansPerSecond;
+-import static edu.wpi.first.units.Units.Seconds;
+-
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.units.Angle;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Time;
+-import edu.wpi.first.units.Velocity;
+ 
+ /**
+  * Represents the speed of a robot chassis. Although this class contains similar members compared to
+@@ -53,20 +44,6 @@ public class ChassisSpeeds {
+     this.omegaRadiansPerSecond = omegaRadiansPerSecond;
+   }
+ 
+-  /**
+-   * Constructs a ChassisSpeeds object.
+-   *
+-   * @param vx Forward velocity.
+-   * @param vy Sideways velocity.
+-   * @param omega Angular velocity.
+-   */
+-  public ChassisSpeeds(
+-      Measure<Velocity<Distance>> vx,
+-      Measure<Velocity<Distance>> vy,
+-      Measure<Velocity<Angle>> omega) {
+-    this(vx.in(MetersPerSecond), vy.in(MetersPerSecond), omega.in(RadiansPerSecond));
+-  }
+-
+   /**
+    * Discretizes a continuous-time chassis speed.
+    *
+@@ -98,32 +75,6 @@ public class ChassisSpeeds {
+     return new ChassisSpeeds(twist.dx / dtSeconds, twist.dy / dtSeconds, twist.dtheta / dtSeconds);
+   }
+ 
+-  /**
+-   * Discretizes a continuous-time chassis speed.
+-   *
+-   * <p>This function converts a continuous-time chassis speed into a discrete-time one such that
+-   * when the discrete-time chassis speed is applied for one timestep, the robot moves as if the
+-   * velocity components are independent (i.e., the robot moves v_x * dt along the x-axis, v_y * dt
+-   * along the y-axis, and omega * dt around the z-axis).
+-   *
+-   * <p>This is useful for compensating for translational skew when translating and rotating a
+-   * swerve drivetrain.
+-   *
+-   * @param vx Forward velocity.
+-   * @param vy Sideways velocity.
+-   * @param omega Angular velocity.
+-   * @param dt The duration of the timestep the speeds should be applied for.
+-   * @return Discretized ChassisSpeeds.
+-   */
+-  public static ChassisSpeeds discretize(
+-      Measure<Velocity<Distance>> vx,
+-      Measure<Velocity<Distance>> vy,
+-      Measure<Velocity<Angle>> omega,
+-      Measure<Time> dt) {
+-    return discretize(
+-        vx.in(MetersPerSecond), vy.in(MetersPerSecond), omega.in(RadiansPerSecond), dt.in(Seconds));
+-  }
+-
+   /**
+    * Discretizes a continuous-time chassis speed.
+    *
+@@ -172,29 +123,6 @@ public class ChassisSpeeds {
+     return new ChassisSpeeds(rotated.getX(), rotated.getY(), omegaRadiansPerSecond);
+   }
+ 
+-  /**
+-   * Converts a user provided field-relative set of speeds into a robot-relative ChassisSpeeds
+-   * object.
+-   *
+-   * @param vx The component of speed in the x direction relative to the field. Positive x is away
+-   *     from your alliance wall.
+-   * @param vy The component of speed in the y direction relative to the field. Positive y is to
+-   *     your left when standing behind the alliance wall.
+-   * @param omega The angular rate of the robot.
+-   * @param robotAngle The angle of the robot as measured by a gyroscope. The robot's angle is
+-   *     considered to be zero when it is facing directly away from your alliance station wall.
+-   *     Remember that this should be CCW positive.
+-   * @return ChassisSpeeds object representing the speeds in the robot's frame of reference.
+-   */
+-  public static ChassisSpeeds fromFieldRelativeSpeeds(
+-      Measure<Velocity<Distance>> vx,
+-      Measure<Velocity<Distance>> vy,
+-      Measure<Velocity<Angle>> omega,
+-      Rotation2d robotAngle) {
+-    return fromFieldRelativeSpeeds(
+-        vx.in(MetersPerSecond), vy.in(MetersPerSecond), omega.in(RadiansPerSecond), robotAngle);
+-  }
+-
+   /**
+    * Converts a user provided field-relative ChassisSpeeds object into a robot-relative
+    * ChassisSpeeds object.
+@@ -240,29 +168,6 @@ public class ChassisSpeeds {
+     return new ChassisSpeeds(rotated.getX(), rotated.getY(), omegaRadiansPerSecond);
+   }
+ 
+-  /**
+-   * Converts a user provided robot-relative set of speeds into a field-relative ChassisSpeeds
+-   * object.
+-   *
+-   * @param vx The component of speed in the x direction relative to the robot. Positive x is
+-   *     towards the robot's front.
+-   * @param vy The component of speed in the y direction relative to the robot. Positive y is
+-   *     towards the robot's left.
+-   * @param omega The angular rate of the robot.
+-   * @param robotAngle The angle of the robot as measured by a gyroscope. The robot's angle is
+-   *     considered to be zero when it is facing directly away from your alliance station wall.
+-   *     Remember that this should be CCW positive.
+-   * @return ChassisSpeeds object representing the speeds in the field's frame of reference.
+-   */
+-  public static ChassisSpeeds fromRobotRelativeSpeeds(
+-      Measure<Velocity<Distance>> vx,
+-      Measure<Velocity<Distance>> vy,
+-      Measure<Velocity<Angle>> omega,
+-      Rotation2d robotAngle) {
+-    return fromRobotRelativeSpeeds(
+-        vx.in(MetersPerSecond), vy.in(MetersPerSecond), omega.in(RadiansPerSecond), robotAngle);
+-  }
+-
+   /**
+    * Converts a user provided robot-relative ChassisSpeeds object into a field-relative
+    * ChassisSpeeds object.
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
+index bfa41fe1a3952a43d169e1a422b9e4967a80acc7..ded28d89acded817d77431fd5960cb13d5cc49de 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
+@@ -4,13 +4,9 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ 
+ /**
+  * Helper class that converts a chassis velocity (dx and dtheta components) to left and right wheel
+@@ -37,17 +33,6 @@ public class DifferentialDriveKinematics
+     MathSharedStore.reportUsage(MathUsageId.kKinematics_DifferentialDrive, 1);
+   }
+ 
+-  /**
+-   * Constructs a differential drive kinematics object.
+-   *
+-   * @param trackWidth The track width of the drivetrain. Theoretically, this is the distance
+-   *     between the left wheels and right wheels. However, the empirical value may be larger than
+-   *     the physical measured value due to scrubbing effects.
+-   */
+-  public DifferentialDriveKinematics(Measure<Distance> trackWidth) {
+-    this(trackWidth.in(Meters));
+-  }
+-
+   /**
+    * Returns a chassis speed from left and right component velocities using forward kinematics.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometry.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometry.java
+index 87d7bbf77fc0b2997edb0249fe4a54575df666a4..db5e8a3387555dcfbb1490239d412c249c0c396e 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometry.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveOdometry.java
+@@ -4,14 +4,10 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ 
+ /**
+  * Class for differential drive odometry. Odometry allows you to track the robot's position on the
+@@ -45,22 +41,6 @@ public class DifferentialDriveOdometry extends Odometry<DifferentialDriveWheelPo
+     MathSharedStore.reportUsage(MathUsageId.kOdometry_DifferentialDrive, 1);
+   }
+ 
+-  /**
+-   * Constructs a DifferentialDriveOdometry object.
+-   *
+-   * @param gyroAngle The angle reported by the gyroscope.
+-   * @param leftDistance The distance traveled by the left encoder.
+-   * @param rightDistance The distance traveled by the right encoder.
+-   * @param initialPoseMeters The starting position of the robot on the field.
+-   */
+-  public DifferentialDriveOdometry(
+-      Rotation2d gyroAngle,
+-      Measure<Distance> leftDistance,
+-      Measure<Distance> rightDistance,
+-      Pose2d initialPoseMeters) {
+-    this(gyroAngle, leftDistance.in(Meters), rightDistance.in(Meters), initialPoseMeters);
+-  }
+-
+   /**
+    * Constructs a DifferentialDriveOdometry object.
+    *
+@@ -73,18 +53,6 @@ public class DifferentialDriveOdometry extends Odometry<DifferentialDriveWheelPo
+     this(gyroAngle, leftDistanceMeters, rightDistanceMeters, new Pose2d());
+   }
+ 
+-  /**
+-   * Constructs a DifferentialDriveOdometry object.
+-   *
+-   * @param gyroAngle The angle reported by the gyroscope.
+-   * @param leftDistance The distance traveled by the left encoder.
+-   * @param rightDistance The distance traveled by the right encoder.
+-   */
+-  public DifferentialDriveOdometry(
+-      Rotation2d gyroAngle, Measure<Distance> leftDistance, Measure<Distance> rightDistance) {
+-    this(gyroAngle, leftDistance, rightDistance, new Pose2d());
+-  }
+-
+   /**
+    * Resets the robot's position on the field.
+    *
+@@ -107,25 +75,6 @@ public class DifferentialDriveOdometry extends Odometry<DifferentialDriveWheelPo
+         poseMeters);
+   }
+ 
+-  /**
+-   * Resets the robot's position on the field.
+-   *
+-   * <p>The gyroscope angle does not need to be reset here on the user's robot code. The library
+-   * automatically takes care of offsetting the gyro angle.
+-   *
+-   * @param gyroAngle The angle reported by the gyroscope.
+-   * @param leftDistance The distance traveled by the left encoder.
+-   * @param rightDistance The distance traveled by the right encoder.
+-   * @param poseMeters The position on the field that your robot is at.
+-   */
+-  public void resetPosition(
+-      Rotation2d gyroAngle,
+-      Measure<Distance> leftDistance,
+-      Measure<Distance> rightDistance,
+-      Pose2d poseMeters) {
+-    resetPosition(gyroAngle, leftDistance.in(Meters), rightDistance.in(Meters), poseMeters);
+-  }
+-
+   /**
+    * Updates the robot position on the field using distance measurements from encoders. This method
+    * is more numerically accurate than using velocities to integrate the pose and is also
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
+index fbdf54d8818f071de58a588221d6f6e11110a5aa..e5ad8d778be1db53fc14486aca4519d87bcc3697 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
+@@ -4,11 +4,7 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ import java.util.Objects;
+ 
+ /** Represents the wheel positions for a differential drive drivetrain. */
+@@ -31,16 +27,6 @@ public class DifferentialDriveWheelPositions
+     this.rightMeters = rightMeters;
+   }
+ 
+-  /**
+-   * Constructs a DifferentialDriveWheelPositions.
+-   *
+-   * @param left Distance measured by the left side.
+-   * @param right Distance measured by the right side.
+-   */
+-  public DifferentialDriveWheelPositions(Measure<Distance> left, Measure<Distance> right) {
+-    this(left.in(Meters), right.in(Meters));
+-  }
+-
+   @Override
+   public boolean equals(Object obj) {
+     if (obj instanceof DifferentialDriveWheelPositions) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
+index 72578226bb7532ea15ec29b571da389189682282..ec874b65f33ac0978f317124566301d3f4c0dfcb 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
+@@ -4,12 +4,6 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Velocity;
+-
+ /** Represents the wheel speeds for a differential drive drivetrain. */
+ public class DifferentialDriveWheelSpeeds {
+   /** Speed of the left side of the robot. */
+@@ -32,17 +26,6 @@ public class DifferentialDriveWheelSpeeds {
+     this.rightMetersPerSecond = rightMetersPerSecond;
+   }
+ 
+-  /**
+-   * Constructs a DifferentialDriveWheelSpeeds.
+-   *
+-   * @param left The left speed.
+-   * @param right The right speed.
+-   */
+-  public DifferentialDriveWheelSpeeds(
+-      Measure<Velocity<Distance>> left, Measure<Velocity<Distance>> right) {
+-    this(left.in(MetersPerSecond), right.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Renormalizes the wheel speeds if any either side is above the specified maximum.
+    *
+@@ -63,20 +46,6 @@ public class DifferentialDriveWheelSpeeds {
+     }
+   }
+ 
+-  /**
+-   * Renormalizes the wheel speeds if any either side is above the specified maximum.
+-   *
+-   * <p>Sometimes, after inverse kinematics, the requested speed from one or more wheels may be
+-   * above the max attainable speed for the driving motor on that wheel. To fix this issue, one can
+-   * reduce all the wheel speeds to make sure that all requested module speeds are at-or-below the
+-   * absolute threshold, while maintaining the ratio of speeds between wheels.
+-   *
+-   * @param attainableMaxSpeed The absolute max speed that a wheel can reach.
+-   */
+-  public void desaturate(Measure<Velocity<Distance>> attainableMaxSpeed) {
+-    desaturate(attainableMaxSpeed.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Adds two DifferentialDriveWheelSpeeds and returns the sum.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
+index d2e45960b047a08da30349a800be4aa0afb3a3aa..43c713dc79fa485618040daf1087fb18424f5e1e 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
+@@ -4,11 +4,7 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ import java.util.Objects;
+ 
+ /** Represents the wheel positions for a mecanum drive drivetrain. */
+@@ -48,22 +44,6 @@ public class MecanumDriveWheelPositions
+     this.rearRightMeters = rearRightMeters;
+   }
+ 
+-  /**
+-   * Constructs a MecanumDriveWheelPositions.
+-   *
+-   * @param frontLeft Distance measured by the front left wheel.
+-   * @param frontRight Distance measured by the front right wheel.
+-   * @param rearLeft Distance measured by the rear left wheel.
+-   * @param rearRight Distance measured by the rear right wheel.
+-   */
+-  public MecanumDriveWheelPositions(
+-      Measure<Distance> frontLeft,
+-      Measure<Distance> frontRight,
+-      Measure<Distance> rearLeft,
+-      Measure<Distance> rearRight) {
+-    this(frontLeft.in(Meters), frontRight.in(Meters), rearLeft.in(Meters), rearRight.in(Meters));
+-  }
+-
+   @Override
+   public boolean equals(Object obj) {
+     if (obj instanceof MecanumDriveWheelPositions) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+index d1a47bf43af65622872cf6b5699a3513b54ed71c..24e108becb760477cd78b5ecbd5619d94743647d 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+@@ -4,12 +4,6 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Velocity;
+-
+ /** Represents the wheel speeds for a mecanum drive drivetrain. */
+ public class MecanumDriveWheelSpeeds {
+   /** Speed of the front left wheel. */
+@@ -46,26 +40,6 @@ public class MecanumDriveWheelSpeeds {
+     this.rearRightMetersPerSecond = rearRightMetersPerSecond;
+   }
+ 
+-  /**
+-   * Constructs a MecanumDriveWheelSpeeds.
+-   *
+-   * @param frontLeft Speed of the front left wheel.
+-   * @param frontRight Speed of the front right wheel.
+-   * @param rearLeft Speed of the rear left wheel.
+-   * @param rearRight Speed of the rear right wheel.
+-   */
+-  public MecanumDriveWheelSpeeds(
+-      Measure<Velocity<Distance>> frontLeft,
+-      Measure<Velocity<Distance>> frontRight,
+-      Measure<Velocity<Distance>> rearLeft,
+-      Measure<Velocity<Distance>> rearRight) {
+-    this(
+-        frontLeft.in(MetersPerSecond),
+-        frontRight.in(MetersPerSecond),
+-        rearLeft.in(MetersPerSecond),
+-        rearRight.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Renormalizes the wheel speeds if any individual speed is above the specified maximum.
+    *
+@@ -94,20 +68,6 @@ public class MecanumDriveWheelSpeeds {
+     }
+   }
+ 
+-  /**
+-   * Renormalizes the wheel speeds if any individual speed is above the specified maximum.
+-   *
+-   * <p>Sometimes, after inverse kinematics, the requested speed from one or more wheels may be
+-   * above the max attainable speed for the driving motor on that wheel. To fix this issue, one can
+-   * reduce all the wheel speeds to make sure that all requested module speeds are at-or-below the
+-   * absolute threshold, while maintaining the ratio of speeds between wheels.
+-   *
+-   * @param attainableMaxSpeed The absolute max speed that a wheel can reach.
+-   */
+-  public void desaturate(Measure<Velocity<Distance>> attainableMaxSpeed) {
+-    desaturate(attainableMaxSpeed.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Adds two MecanumDriveWheelSpeeds and returns the sum.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
+index badd76569133e95a22ad1be3994b3862a0918fa4..613009cffad19eaf265873e5b82d41b0ccfff9d0 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveDriveKinematics.java
+@@ -4,18 +4,11 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-import static edu.wpi.first.units.Units.RadiansPerSecond;
+-
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.units.Angle;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Velocity;
+ import java.util.Arrays;
+ import org.ejml.simple.SimpleMatrix;
+ 
+@@ -311,23 +304,6 @@ public class SwerveDriveKinematics
+     }
+   }
+ 
+-  /**
+-   * Renormalizes the wheel speeds if any individual speed is above the specified maximum.
+-   *
+-   * <p>Sometimes, after inverse kinematics, the requested speed from one or more modules may be
+-   * above the max attainable speed for the driving motor on that module. To fix this issue, one can
+-   * reduce all the wheel speeds to make sure that all requested module speeds are at-or-below the
+-   * absolute threshold, while maintaining the ratio of speeds between modules.
+-   *
+-   * @param moduleStates Reference to array of module states. The array will be mutated with the
+-   *     normalized speeds!
+-   * @param attainableMaxSpeed The absolute max speed that a module can reach.
+-   */
+-  public static void desaturateWheelSpeeds(
+-      SwerveModuleState[] moduleStates, Measure<Velocity<Distance>> attainableMaxSpeed) {
+-    desaturateWheelSpeeds(moduleStates, attainableMaxSpeed.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Renormalizes the wheel speeds if any individual speed is above the specified maximum, as well
+    * as getting rid of joystick saturation at edges of joystick.
+@@ -374,36 +350,4 @@ public class SwerveDriveKinematics
+       moduleState.speedMetersPerSecond *= scale;
+     }
+   }
+-
+-  /**
+-   * Renormalizes the wheel speeds if any individual speed is above the specified maximum, as well
+-   * as getting rid of joystick saturation at edges of joystick.
+-   *
+-   * <p>Sometimes, after inverse kinematics, the requested speed from one or more modules may be
+-   * above the max attainable speed for the driving motor on that module. To fix this issue, one can
+-   * reduce all the wheel speeds to make sure that all requested module speeds are at-or-below the
+-   * absolute threshold, while maintaining the ratio of speeds between modules.
+-   *
+-   * @param moduleStates Reference to array of module states. The array will be mutated with the
+-   *     normalized speeds!
+-   * @param desiredChassisSpeed The desired speed of the robot
+-   * @param attainableMaxModuleSpeed The absolute max speed that a module can reach
+-   * @param attainableMaxTranslationalSpeed The absolute max speed that your robot can reach while
+-   *     translating
+-   * @param attainableMaxRotationalVelocity The absolute max speed the robot can reach while
+-   *     rotating
+-   */
+-  public static void desaturateWheelSpeeds(
+-      SwerveModuleState[] moduleStates,
+-      ChassisSpeeds desiredChassisSpeed,
+-      Measure<Velocity<Distance>> attainableMaxModuleSpeed,
+-      Measure<Velocity<Distance>> attainableMaxTranslationalSpeed,
+-      Measure<Velocity<Angle>> attainableMaxRotationalVelocity) {
+-    desaturateWheelSpeeds(
+-        moduleStates,
+-        desiredChassisSpeed,
+-        attainableMaxModuleSpeed.in(MetersPerSecond),
+-        attainableMaxTranslationalSpeed.in(MetersPerSecond),
+-        attainableMaxRotationalVelocity.in(RadiansPerSecond));
+-  }
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
+index 704fc750c0cbd974a6fb58d4860cde2d52f61f3b..edf30e33d6035748e2debfc0c80d93a3105dd7a4 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
+@@ -4,13 +4,9 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.Meters;
+-
+ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+ import java.util.Objects;
+ 
+ /** Represents the state of one swerve module. */
+@@ -37,16 +33,6 @@ public class SwerveModulePosition
+     this.angle = angle;
+   }
+ 
+-  /**
+-   * Constructs a SwerveModulePosition.
+-   *
+-   * @param distance The distance measured by the wheel of the module.
+-   * @param angle The angle of the module.
+-   */
+-  public SwerveModulePosition(Measure<Distance> distance, Rotation2d angle) {
+-    this(distance.in(Meters), angle);
+-  }
+-
+   @Override
+   public boolean equals(Object obj) {
+     if (obj instanceof SwerveModulePosition) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+index 880c2111f13d860e29d371ffe2244885dc6f676a..f11f9e79fb58314710d31d758249473753c87569 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+@@ -4,12 +4,7 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-
+ import edu.wpi.first.math.geometry.Rotation2d;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Velocity;
+ import java.util.Objects;
+ 
+ /** Represents the state of one swerve module. */
+@@ -35,16 +30,6 @@ public class SwerveModuleState
+     this.angle = angle;
+   }
+ 
+-  /**
+-   * Constructs a SwerveModuleState.
+-   *
+-   * @param speed The speed of the wheel of the module.
+-   * @param angle The angle of the module.
+-   */
+-  public SwerveModuleState(Measure<Velocity<Distance>> speed, Rotation2d angle) {
+-    this(speed.in(MetersPerSecond), angle);
+-  }
+-
+   @Override
+   public boolean equals(Object obj) {
+     if (obj instanceof SwerveModuleState) {
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryConfig.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryConfig.java
+index 931efe5aab85554224f0dc23d0172b33a4b0d612..fbf734fd31c022a1cd30fe572c9c61648bd0a06c 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryConfig.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryConfig.java
+@@ -4,9 +4,6 @@
+ 
+ package edu.wpi.first.math.trajectory;
+ 
+-import static edu.wpi.first.units.Units.MetersPerSecond;
+-import static edu.wpi.first.units.Units.MetersPerSecondPerSecond;
+-
+ import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
+ import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
+ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+@@ -14,9 +11,6 @@ import edu.wpi.first.math.trajectory.constraint.DifferentialDriveKinematicsConst
+ import edu.wpi.first.math.trajectory.constraint.MecanumDriveKinematicsConstraint;
+ import edu.wpi.first.math.trajectory.constraint.SwerveDriveKinematicsConstraint;
+ import edu.wpi.first.math.trajectory.constraint.TrajectoryConstraint;
+-import edu.wpi.first.units.Distance;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Velocity;
+ import java.util.ArrayList;
+ import java.util.List;
+ 
+@@ -49,18 +43,6 @@ public class TrajectoryConfig {
+     m_constraints = new ArrayList<>();
+   }
+ 
+-  /**
+-   * Constructs the trajectory configuration class.
+-   *
+-   * @param maxVelocity The max velocity for the trajectory.
+-   * @param maxAcceleration The max acceleration for the trajectory.
+-   */
+-  public TrajectoryConfig(
+-      Measure<Velocity<Distance>> maxVelocity,
+-      Measure<Velocity<Velocity<Distance>>> maxAcceleration) {
+-    this(maxVelocity.in(MetersPerSecond), maxAcceleration.in(MetersPerSecondPerSecond));
+-  }
+-
+   /**
+    * Adds a user-defined constraint to the trajectory.
+    *
+@@ -139,16 +121,6 @@ public class TrajectoryConfig {
+     return this;
+   }
+ 
+-  /**
+-   * Sets the start velocity of the trajectory.
+-   *
+-   * @param startVelocity The start velocity of the trajectory.
+-   * @return Instance of the current config object.
+-   */
+-  public TrajectoryConfig setStartVelocity(Measure<Velocity<Distance>> startVelocity) {
+-    return setStartVelocity(startVelocity.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Returns the starting velocity of the trajectory.
+    *
+@@ -169,16 +141,6 @@ public class TrajectoryConfig {
+     return this;
+   }
+ 
+-  /**
+-   * Sets the end velocity of the trajectory.
+-   *
+-   * @param endVelocity The end velocity of the trajectory.
+-   * @return Instance of the current config object.
+-   */
+-  public TrajectoryConfig setEndVelocity(Measure<Velocity<Distance>> endVelocity) {
+-    return setEndVelocity(endVelocity.in(MetersPerSecond));
+-  }
+-
+   /**
+    * Returns the maximum velocity of the trajectory.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrapezoidProfile.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrapezoidProfile.java
+index 657ea24fe3b8419654bffc1cbd4d9b17fd5aec7c..ef6c3379cd82ef421a6cb173e3ebee1849126348 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrapezoidProfile.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrapezoidProfile.java
+@@ -6,9 +6,6 @@ package edu.wpi.first.math.trajectory;
+ 
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+-import edu.wpi.first.units.Measure;
+-import edu.wpi.first.units.Unit;
+-import edu.wpi.first.units.Velocity;
+ import java.util.Objects;
+ 
+ /**
+@@ -73,18 +70,6 @@ public class TrapezoidProfile {
+       this.maxAcceleration = maxAcceleration;
+       MathSharedStore.reportUsage(MathUsageId.kTrajectory_TrapezoidProfile, 1);
+     }
+-
+-    /**
+-     * Constructs constraints for a TrapezoidProfile.
+-     *
+-     * @param <U> Unit type.
+-     * @param maxVelocity maximum velocity
+-     * @param maxAcceleration maximum acceleration
+-     */
+-    public <U extends Unit<U>> Constraints(
+-        Measure<Velocity<U>> maxVelocity, Measure<Velocity<Velocity<U>>> maxAcceleration) {
+-      this(maxVelocity.baseUnitMagnitude(), maxAcceleration.baseUnitMagnitude());
+-    }
+   }
+ 
+   /** Profile state. */
+@@ -109,17 +94,6 @@ public class TrapezoidProfile {
+       this.velocity = velocity;
+     }
+ 
+-    /**
+-     * Constructs constraints for a Trapezoid Profile.
+-     *
+-     * @param <U> Unit type.
+-     * @param position The position at this state.
+-     * @param velocity The velocity at this state.
+-     */
+-    public <U extends Unit<U>> State(Measure<U> position, Measure<Velocity<U>> velocity) {
+-      this(position.baseUnitMagnitude(), velocity.baseUnitMagnitude());
+-    }
+-
+     @Override
+     public boolean equals(Object other) {
+       if (other instanceof State) {
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+index 9df02aa66d17d0bff0770b4e8038d66d4fa73d22..7ee115f54d81fef061a42acbb15807e74545f4b1 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertNotEquals;
+ 
+-import edu.wpi.first.units.Units;
+ import org.junit.jupiter.api.Test;
+ 
+ import java.util.Arrays;
+@@ -16,15 +15,6 @@ import java.util.Arrays;
+ class Pose2dTest {
+   private static final double kEpsilon = 1E-9;
+ 
+-  @Test
+-  void testNewWithMeasures() {
+-    var pose = new Pose2d(Units.Inches.of(6), Units.Inches.of(8), Rotation2d.fromDegrees(45));
+-
+-    assertEquals(0.1524, pose.getX(), kEpsilon);
+-    assertEquals(0.2032, pose.getY(), kEpsilon);
+-    assertEquals(Math.PI / 4, pose.getRotation().getRadians(), kEpsilon);
+-  }
+-
+   @Test
+   void testRotateBy() {
+     final double x = 1.0;
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
+index 0a88a4ce54f2b33b245919438df810839692710b..1acb8cda5eea2f6ee5af8d942b7ebfe02aad8147 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Rotation2dTest.java
+@@ -8,19 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertNotEquals;
+ 
+-import edu.wpi.first.units.Units;
+ import org.junit.jupiter.api.Test;
+ 
+ class Rotation2dTest {
+   private static final double kEpsilon = 1E-9;
+ 
+-  @Test
+-  void testNewWithMeasures() {
+-    var rot = new Rotation2d(Units.Degrees.of(45));
+-
+-    assertEquals(Math.PI / 4, rot.getRadians(), kEpsilon);
+-  }
+-
+   @Test
+   void testRadiansToDegrees() {
+     Rotation2d rot1 = Rotation2d.fromRadians(Math.PI / 3);
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
+index 0cdcf7475780b6b879424f59365004b93f02722e..fd53f0b2f10016877d58ea4093fd026bcfe088e2 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Transform2dTest.java
+@@ -6,22 +6,11 @@ package edu.wpi.first.math.geometry;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+-import edu.wpi.first.units.Units;
+ import org.junit.jupiter.api.Test;
+ 
+ class Transform2dTest {
+   private static final double kEpsilon = 1E-9;
+ 
+-  @Test
+-  void testNewWithMeasures() {
+-    var transform =
+-        new Transform2d(Units.Inches.of(6), Units.Inches.of(8), Rotation2d.fromDegrees(45));
+-
+-    assertEquals(0.1524, transform.getX(), kEpsilon);
+-    assertEquals(0.2032, transform.getY(), kEpsilon);
+-    assertEquals(Math.PI / 4, transform.getRotation().getRadians(), kEpsilon);
+-  }
+-
+   @Test
+   void testInverse() {
+     Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
+index 21fed73f185906af3c44cb54f87ea663bab66b2d..423ba94a74acc0cd3996fdeafe17f591287239ee 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/ChassisSpeedsTest.java
+@@ -4,8 +4,6 @@
+ 
+ package edu.wpi.first.math.kinematics;
+ 
+-import static edu.wpi.first.units.Units.InchesPerSecond;
+-import static edu.wpi.first.units.Units.RPM;
+ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+@@ -46,19 +44,6 @@ class ChassisSpeedsTest {
+                 kEpsilon));
+   }
+ 
+-  @Test
+-  void testMeasureConstructor() {
+-    var vx = InchesPerSecond.of(14.52);
+-    var vy = InchesPerSecond.zero();
+-    var omega = RPM.of(0.02);
+-    var speeds = new ChassisSpeeds(vx, vy, omega);
+-
+-    assertAll(
+-        () -> assertEquals(0.368808, speeds.vxMetersPerSecond, kEpsilon),
+-        () -> assertEquals(0, speeds.vyMetersPerSecond, kEpsilon),
+-        () -> assertEquals(0.002094395102, speeds.omegaRadiansPerSecond, kEpsilon));
+-  }
+-
+   @Test
+   void testFromFieldRelativeSpeeds() {
+     final ChassisSpeeds chassisSpeeds =

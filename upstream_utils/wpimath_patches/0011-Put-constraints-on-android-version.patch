@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 15:23:04 -0400
+Subject: [PATCH 11/11] Put constraints on android version
+
+---
+ .../math/trajectory/TrajectoryGenerator.java      | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+index 7265b73c9d95762b23881f478ee948b76acb7bf9..8938baaef246987042d85e3e57c9e9ec59a1f714 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+@@ -4,6 +4,8 @@
+ 
+ package edu.wpi.first.math.trajectory;
+ 
++import android.os.Build;
++import androidx.annotation.RequiresApi;
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+@@ -29,6 +31,7 @@ public final class TrajectoryGenerator {
+   /** Private constructor because this is a utility class. */
+   private TrajectoryGenerator() {}
+ 
++  @RequiresApi(api = Build.VERSION_CODES.N)
+   private static void reportError(String error, StackTraceElement[] stackTrace) {
+     if (errorFunc != null) {
+       errorFunc.accept(error, stackTrace);
+@@ -58,6 +61,7 @@ public final class TrajectoryGenerator {
+    * @param config The configuration for the trajectory.
+    * @return The generated trajectory.
+    */
++  @RequiresApi(api = Build.VERSION_CODES.N)
+   public static Trajectory generateTrajectory(
+       Spline.ControlVector initial,
+       List<Translation2d> interiorWaypoints,
+@@ -85,7 +89,9 @@ public final class TrajectoryGenerator {
+               SplineHelper.getCubicSplinesFromControlVectors(
+                   newInitial, interiorWaypoints.toArray(new Translation2d[0]), newEnd));
+     } catch (MalformedSplineException ex) {
+-      reportError(ex.getMessage(), ex.getStackTrace());
++      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
++        reportError(ex.getMessage(), ex.getStackTrace());
++      }
+       return kDoNothingTrajectory;
+     }
+ 
+@@ -120,6 +126,7 @@ public final class TrajectoryGenerator {
+    * @param config The configuration for the trajectory.
+    * @return The generated trajectory.
+    */
++  @RequiresApi(api = Build.VERSION_CODES.N)
+   public static Trajectory generateTrajectory(
+       Pose2d start, List<Translation2d> interiorWaypoints, Pose2d end, TrajectoryConfig config) {
+     Spline.ControlVector[] controlVectors =
+@@ -139,6 +146,7 @@ public final class TrajectoryGenerator {
+    * @param config The configuration for the trajectory.
+    * @return The generated trajectory.
+    */
++  @RequiresApi(api = Build.VERSION_CODES.N)
+   public static Trajectory generateTrajectory(
+       ControlVectorList controlVectors, TrajectoryConfig config) {
+     final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+@@ -162,7 +170,9 @@ public final class TrajectoryGenerator {
+               SplineHelper.getQuinticSplinesFromControlVectors(
+                   newControlVectors.toArray(new Spline.ControlVector[] {})));
+     } catch (MalformedSplineException ex) {
+-      reportError(ex.getMessage(), ex.getStackTrace());
++      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
++        reportError(ex.getMessage(), ex.getStackTrace());
++      }
+       return kDoNothingTrajectory;
+     }
+ 
+@@ -194,6 +204,7 @@ public final class TrajectoryGenerator {
+    * @param config The configuration for the trajectory.
+    * @return The generated trajectory.
+    */
++  @RequiresApi(api = Build.VERSION_CODES.N)
+   public static Trajectory generateTrajectory(List<Pose2d> waypoints, TrajectoryConfig config) {
+     final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+ 

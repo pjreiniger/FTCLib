@@ -1,0 +1,315 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 14:22:16 -0400
+Subject: [PATCH 03/11] Don't use List.of
+
+---
+ .../math/trajectory/TrajectoryGenerator.java  |  3 ++-
+ .../wpi/first/math/geometry/Pose2dTest.java   | 19 ++++++++++---------
+ .../math/geometry/Translation2dTest.java      |  9 ++++-----
+ .../kinematics/MecanumDriveOdometryTest.java  |  7 ++++---
+ .../kinematics/SwerveDriveOdometryTest.java   |  7 ++++---
+ .../math/spline/CubicHermiteSplineTest.java   |  3 ++-
+ .../math/spline/QuinticHermiteSplineTest.java |  4 +++-
+ .../trajectory/TrajectoryConcatenateTest.java |  6 ++++--
+ .../trajectory/TrajectoryGeneratorTest.java   |  5 +++--
+ .../trajectory/TrajectoryTransformTest.java   |  6 ++++--
+ 10 files changed, 40 insertions(+), 29 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+index 6a8d77a66fa58e32e8f3a2ed5b3a791de2f57ff8..7265b73c9d95762b23881f478ee948b76acb7bf9 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/TrajectoryGenerator.java
+@@ -14,6 +14,7 @@ import edu.wpi.first.math.spline.Spline;
+ import edu.wpi.first.math.spline.SplineHelper;
+ import edu.wpi.first.math.spline.SplineParameterizer;
+ import edu.wpi.first.math.spline.SplineParameterizer.MalformedSplineException;
++import java.util.Arrays;
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.List;
+@@ -22,7 +23,7 @@ import java.util.function.BiConsumer;
+ /** Helper class used to generate trajectories with various constraints. */
+ public final class TrajectoryGenerator {
+   private static final Trajectory kDoNothingTrajectory =
+-      new Trajectory(List.of(new Trajectory.State()));
++      new Trajectory(Arrays.asList(new Trajectory.State()));
+   private static BiConsumer<String, StackTraceElement[]> errorFunc;
+ 
+   /** Private constructor because this is a utility class. */
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+index 0186a905f03bf20d98a29acc6a9b621382b968dc..9df02aa66d17d0bff0770b4e8038d66d4fa73d22 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Pose2dTest.java
+@@ -9,9 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertNotEquals;
+ 
+ import edu.wpi.first.units.Units;
+-import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
++import java.util.Arrays;
++
+ class Pose2dTest {
+   private static final double kEpsilon = 1E-9;
+ 
+@@ -116,9 +117,9 @@ class Pose2dTest {
+     final Pose2d pose5 =
+         new Pose2d(new Translation2d(5, Rotation2d.fromDegrees(270)), new Rotation2d());
+ 
+-    assertEquals(pose3, origin.nearest(List.of(pose5, pose3, pose4)));
+-    assertEquals(pose1, origin.nearest(List.of(pose1, pose2, pose3)));
+-    assertEquals(pose2, origin.nearest(List.of(pose4, pose2, pose3)));
++    assertEquals(pose3, origin.nearest(Arrays.asList(pose5, pose3, pose4)));
++    assertEquals(pose1, origin.nearest(Arrays.asList(pose1, pose2, pose3)));
++    assertEquals(pose2, origin.nearest(Arrays.asList(pose4, pose2, pose3)));
+ 
+     // Rotation component sort (when distance is the same)
+     // Use the same translation because using different angles at the same distance can cause
+@@ -132,16 +133,16 @@ class Pose2dTest {
+     final Pose2d poseE = new Pose2d(translation, Rotation2d.fromDegrees(-180));
+ 
+     assertEquals(
+-        poseA, new Pose2d(0, 0, Rotation2d.fromDegrees(360)).nearest(List.of(poseA, poseB, poseD)));
++        poseA, new Pose2d(0, 0, Rotation2d.fromDegrees(360)).nearest(Arrays.asList(poseA, poseB, poseD)));
+     assertEquals(
+         poseB,
+-        new Pose2d(0, 0, Rotation2d.fromDegrees(-335)).nearest(List.of(poseB, poseC, poseD)));
++        new Pose2d(0, 0, Rotation2d.fromDegrees(-335)).nearest(Arrays.asList(poseB, poseC, poseD)));
+     assertEquals(
+         poseC,
+-        new Pose2d(0, 0, Rotation2d.fromDegrees(-120)).nearest(List.of(poseB, poseC, poseD)));
++        new Pose2d(0, 0, Rotation2d.fromDegrees(-120)).nearest(Arrays.asList(poseB, poseC, poseD)));
+     assertEquals(
+-        poseD, new Pose2d(0, 0, Rotation2d.fromDegrees(85)).nearest(List.of(poseA, poseC, poseD)));
++        poseD, new Pose2d(0, 0, Rotation2d.fromDegrees(85)).nearest(Arrays.asList(poseA, poseC, poseD)));
+     assertEquals(
+-        poseE, new Pose2d(0, 0, Rotation2d.fromDegrees(170)).nearest(List.of(poseA, poseD, poseE)));
++        poseE, new Pose2d(0, 0, Rotation2d.fromDegrees(170)).nearest(Arrays.asList(poseA, poseD, poseE)));
+   }
+ }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+index 16e143f58f54a4a26c5b60943aedffda3f3ae62d..3a496c7f7e7d09a43b6ea136947881e43ab3a4dc 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/geometry/Translation2dTest.java
+@@ -8,8 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertNotEquals;
+ 
+-import edu.wpi.first.math.VecBuilder;
+-import java.util.List;
++import java.util.Arrays;
+ import org.junit.jupiter.api.Test;
+ 
+ class Translation2dTest {
+@@ -128,9 +127,9 @@ class Translation2dTest {
+     Translation2d translation4 = new Translation2d(4, Rotation2d.fromDegrees(180));
+     Translation2d translation5 = new Translation2d(5, Rotation2d.fromDegrees(270));
+ 
+-    assertEquals(origin.nearest(List.of(translation5, translation3, translation4)), translation3);
+-    assertEquals(origin.nearest(List.of(translation1, translation2, translation3)), translation1);
+-    assertEquals(origin.nearest(List.of(translation4, translation2, translation3)), translation2);
++    assertEquals(origin.nearest(Arrays.asList(translation5, translation3, translation4)), translation3);
++    assertEquals(origin.nearest(Arrays.asList(translation1, translation2, translation3)), translation1);
++    assertEquals(origin.nearest(Arrays.asList(translation4, translation2, translation3)), translation2);
+   }
+ 
+   @Test
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
+index 6996a6c85a3249b9fefe25b68874f25f440dd51b..68d8e3ed14ea9c7e631214705268ca88f5047530 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/MecanumDriveOdometryTest.java
+@@ -13,7 +13,8 @@ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.trajectory.TrajectoryConfig;
+ import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+-import java.util.List;
++
++import java.util.Arrays;
+ import java.util.Random;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -107,7 +108,7 @@ class MecanumDriveOdometryTest {
+ 
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(),
+                 new Pose2d(20, 20, Rotation2d.fromDegrees(0)),
+                 new Pose2d(10, 10, Rotation2d.fromDegrees(180)),
+@@ -196,7 +197,7 @@ class MecanumDriveOdometryTest {
+ 
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(),
+                 new Pose2d(20, 20, Rotation2d.fromDegrees(0)),
+                 new Pose2d(10, 10, Rotation2d.fromDegrees(180)),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
+index 6a08e7960ea1e287c63bedd85ecff1e2212b87d3..905966bfdaa710769d55dce5b5a2c738aa5ceb68 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/kinematics/SwerveDriveOdometryTest.java
+@@ -13,7 +13,8 @@ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.trajectory.Trajectory;
+ import edu.wpi.first.math.trajectory.TrajectoryConfig;
+ import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+-import java.util.List;
++
++import java.util.Arrays;
+ import java.util.Random;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -121,7 +122,7 @@ class SwerveDriveOdometryTest {
+ 
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45)),
+                 new Pose2d(3, 0, Rotation2d.fromDegrees(-90)),
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(135)),
+@@ -211,7 +212,7 @@ class SwerveDriveOdometryTest {
+ 
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(45)),
+                 new Pose2d(3, 0, Rotation2d.fromDegrees(-90)),
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(135)),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java b/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
+index 4d7f7aea391c01841a516501b59843cee837dc5b..8bd3c2cdad1bf1235d1d4368b84f36a978d3a90d 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/spline/CubicHermiteSplineTest.java
+@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+ import edu.wpi.first.math.spline.SplineParameterizer.MalformedSplineException;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -151,7 +152,7 @@ class CubicHermiteSplineTest {
+         () ->
+             run(
+                 new Pose2d(10, 10, Rotation2d.fromDegrees(90)),
+-                List.of(new Translation2d(10, 10.5)),
++                Arrays.asList(new Translation2d(10, 10.5)),
+                 new Pose2d(10, 11, Rotation2d.fromDegrees(-90))));
+   }
+ }
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java b/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
+index e19b80c49d0894d8683dbb10d46e37cd5bfa60aa..4633d94cca8204405feb858633136abf233a479d 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/spline/QuinticHermiteSplineTest.java
+@@ -13,6 +13,8 @@ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+ import edu.wpi.first.math.spline.SplineParameterizer.MalformedSplineException;
++
++import java.util.Arrays;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -26,7 +28,7 @@ class QuinticHermiteSplineTest {
+     // var start = System.nanoTime();
+ 
+     // Generate and parameterize the spline.
+-    QuinticHermiteSpline spline = SplineHelper.getQuinticSplinesFromWaypoints(List.of(a, b))[0];
++    QuinticHermiteSpline spline = SplineHelper.getQuinticSplinesFromWaypoints(Arrays.asList(a, b))[0];
+     List<PoseWithCurvature> poses = SplineParameterizer.parameterize(spline);
+ 
+     // End the timer.
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
+index a5fa1b9427ce4b9602d3d22f50406b2486027dcf..3eb813fd6beea87b8ffbe2be2d5a459194859f5e 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryConcatenateTest.java
+@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
++
++import java.util.ArrayList;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -18,14 +20,14 @@ class TrajectoryConcatenateTest {
+     Trajectory t1 =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(),
+-            List.of(),
++            new ArrayList<>(),
+             new Pose2d(1, 1, new Rotation2d()),
+             new TrajectoryConfig(2, 2));
+ 
+     Trajectory t2 =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(1, 1, new Rotation2d()),
+-            List.of(),
++            new ArrayList<>(),
+             new Pose2d(2, 2, Rotation2d.fromDegrees(45)),
+             new TrajectoryConfig(2, 2));
+ 
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
+index 280e6d84401fdf40f77fc1cf422434a090abcda3..7d9026ad6598b4e3fdd54eec5efe768a9dd5b468 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryGeneratorTest.java
+@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Transform2d;
+ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.trajectory.constraint.TrajectoryConstraint;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -72,7 +73,7 @@ class TrajectoryGeneratorTest {
+   void testMalformedTrajectory() {
+     Trajectory traj =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(0, 0, Rotation2d.fromDegrees(0)),
+                 new Pose2d(1, 0, Rotation2d.fromDegrees(180))),
+             new TrajectoryConfig(feetToMeters(12), feetToMeters(12)));
+@@ -85,7 +86,7 @@ class TrajectoryGeneratorTest {
+   void testQuinticCurvatureOptimization() {
+     Trajectory t =
+         TrajectoryGenerator.generateTrajectory(
+-            List.of(
++            Arrays.asList(
+                 new Pose2d(1, 0, Rotation2d.fromDegrees(90)),
+                 new Pose2d(0, 1, Rotation2d.fromDegrees(180)),
+                 new Pose2d(-1, 0, Rotation2d.fromDegrees(270)),
+diff --git a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
+index 391d38f3d0bc846ea65510825e4d01aba2a8540b..ee25a9e7556b1d27d0f844373597f468f1f87bfb 100644
+--- a/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
++++ b/wpimath/src/test/java/edu/wpi/first/math/trajectory/TrajectoryTransformTest.java
+@@ -10,6 +10,8 @@ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Transform2d;
+ import edu.wpi.first.math.geometry.Translation2d;
++
++import java.util.ArrayList;
+ import java.util.List;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -19,7 +21,7 @@ class TrajectoryTransformTest {
+     TrajectoryConfig config = new TrajectoryConfig(3, 3);
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+-            new Pose2d(), List.of(), new Pose2d(1, 1, Rotation2d.fromDegrees(90)), config);
++            new Pose2d(), new ArrayList<>(), new Pose2d(1, 1, Rotation2d.fromDegrees(90)), config);
+ 
+     Trajectory transformedTrajectory =
+         trajectory.transformBy(
+@@ -38,7 +40,7 @@ class TrajectoryTransformTest {
+     Trajectory trajectory =
+         TrajectoryGenerator.generateTrajectory(
+             new Pose2d(1, 2, Rotation2d.fromDegrees(30.0)),
+-            List.of(),
++            new ArrayList<>(),
+             new Pose2d(5, 7, Rotation2d.fromDegrees(90)),
+             config);
+ 

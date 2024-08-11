@@ -1,0 +1,653 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PJ Reiniger <pj.reiniger@gmail.com>
+Date: Sun, 11 Aug 2024 14:20:33 -0400
+Subject: [PATCH 02/11] Remove struct / protobuf support
+
+---
+ .../first/math/controller/ArmFeedforward.java    | 13 +------------
+ .../math/controller/ElevatorFeedforward.java     | 12 +-----------
+ .../java/edu/wpi/first/math/geometry/Pose2d.java | 13 ++-----------
+ .../edu/wpi/first/math/geometry/Rotation2d.java  | 13 ++-----------
+ .../edu/wpi/first/math/geometry/Transform2d.java | 12 +-----------
+ .../wpi/first/math/geometry/Translation2d.java   | 12 +-----------
+ .../edu/wpi/first/math/geometry/Twist2d.java     | 12 +-----------
+ .../wpi/first/math/kinematics/ChassisSpeeds.java | 13 +------------
+ .../kinematics/DifferentialDriveKinematics.java  | 16 +---------------
+ .../DifferentialDriveWheelPositions.java         | 10 ----------
+ .../kinematics/DifferentialDriveWheelSpeeds.java | 14 +-------------
+ .../math/kinematics/MecanumDriveKinematics.java  | 14 +-------------
+ .../kinematics/MecanumDriveWheelPositions.java   | 15 +--------------
+ .../math/kinematics/MecanumDriveWheelSpeeds.java | 12 +-----------
+ .../math/kinematics/SwerveModulePosition.java    | 14 +-------------
+ .../first/math/kinematics/SwerveModuleState.java | 12 +-----------
+ .../wpi/first/math/trajectory/Trajectory.java    | 13 ++-----------
+ 17 files changed, 19 insertions(+), 201 deletions(-)
+
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/ArmFeedforward.java b/wpimath/src/main/java/edu/wpi/first/math/controller/ArmFeedforward.java
+index 0d8b11b465f9e8bc627cddad6372e9ea4752412e..cf2c81c2e4ba19769e4aa1392a9c4ce285626ef6 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/ArmFeedforward.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/ArmFeedforward.java
+@@ -4,16 +4,11 @@
+ 
+ package edu.wpi.first.math.controller;
+ 
+-import edu.wpi.first.math.controller.proto.ArmFeedforwardProto;
+-import edu.wpi.first.math.controller.struct.ArmFeedforwardStruct;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+-
+ /**
+  * A helper class that computes feedforward outputs for a simple arm (modeled as a motor acting
+  * against the force of gravity on a beam suspended at an angle).
+  */
+-public class ArmFeedforward implements ProtobufSerializable, StructSerializable {
++public class ArmFeedforward {
+   /** The static gain, in volts. */
+   public final double ks;
+ 
+@@ -26,12 +21,6 @@ public class ArmFeedforward implements ProtobufSerializable, StructSerializable
+   /** The acceleration gain, in volt seconds² per radian. */
+   public final double ka;
+ 
+-  /** Arm feedforward protobuf for serialization. */
+-  public static final ArmFeedforwardProto proto = new ArmFeedforwardProto();
+-
+-  /** Arm feedforward struct for serialization. */
+-  public static final ArmFeedforwardStruct struct = new ArmFeedforwardStruct();
+-
+   /**
+    * Creates a new ArmFeedforward with the specified gains. Units of the gain values will dictate
+    * units of the computed feedforward.
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/controller/ElevatorFeedforward.java b/wpimath/src/main/java/edu/wpi/first/math/controller/ElevatorFeedforward.java
+index dc56ece26a45300ea46b7f7ad46ada5b4cbf82f6..92ac2b8436c43ab03d2a29a8225585ecba34c4d9 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/controller/ElevatorFeedforward.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/controller/ElevatorFeedforward.java
+@@ -6,17 +6,13 @@ package edu.wpi.first.math.controller;
+ 
+ import edu.wpi.first.math.MatBuilder;
+ import edu.wpi.first.math.Nat;
+-import edu.wpi.first.math.controller.proto.ElevatorFeedforwardProto;
+-import edu.wpi.first.math.controller.struct.ElevatorFeedforwardStruct;
+ import edu.wpi.first.math.system.plant.LinearSystemId;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ 
+ /**
+  * A helper class that computes feedforward outputs for a simple elevator (modeled as a motor acting
+  * against the force of gravity).
+  */
+-public class ElevatorFeedforward implements ProtobufSerializable, StructSerializable {
++public class ElevatorFeedforward {
+   /** The static gain. */
+   public final double ks;
+ 
+@@ -29,12 +25,6 @@ public class ElevatorFeedforward implements ProtobufSerializable, StructSerializ
+   /** The acceleration gain. */
+   public final double ka;
+ 
+-  /** ElevatorFeedforward protobuf for serialization. */
+-  public static final ElevatorFeedforwardProto proto = new ElevatorFeedforwardProto();
+-
+-  /** ElevatorFeedforward struct for serialization. */
+-  public static final ElevatorFeedforwardStruct struct = new ElevatorFeedforwardStruct();
+-
+   /**
+    * Creates a new ElevatorFeedforward with the specified gains. Units of the gain values will
+    * dictate units of the computed feedforward.
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+index f0f53952783dfd22fdef45a71a31ca161a1c132d..a900226071f3298b4bc703fa22da08dac51f2af4 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Pose2d.java
+@@ -10,13 +10,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
+ import com.fasterxml.jackson.annotation.JsonCreator;
+ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+ import com.fasterxml.jackson.annotation.JsonProperty;
+-import edu.wpi.first.math.geometry.proto.Pose2dProto;
+-import edu.wpi.first.math.geometry.struct.Pose2dStruct;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
++
+ import java.util.Collections;
+ import java.util.Comparator;
+ import java.util.List;
+@@ -25,7 +22,7 @@ import java.util.Objects;
+ /** Represents a 2D pose containing translational and rotational elements. */
+ @JsonIgnoreProperties(ignoreUnknown = true)
+ @JsonAutoDetect(getterVisibility = JsonAutoDetect.Visibility.NONE)
+-public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, StructSerializable {
++public class Pose2d implements Interpolatable<Pose2d> {
+   private final Translation2d m_translation;
+   private final Rotation2d m_rotation;
+ 
+@@ -325,10 +322,4 @@ public class Pose2d implements Interpolatable<Pose2d>, ProtobufSerializable, Str
+       return this.exp(scaledTwist);
+     }
+   }
+-
+-  /** Pose2d protobuf for serialization. */
+-  public static final Pose2dProto proto = new Pose2dProto();
+-
+-  /** Pose2d struct for serialization. */
+-  public static final Pose2dStruct struct = new Pose2dStruct();
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+index 62f7daa42dc4c2545b8ae38ed1f9a5a89e18582c..07948f5d00db4a500023f410413c705ba481e375 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Rotation2d.java
+@@ -11,14 +11,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
+ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.math.geometry.proto.Rotation2dProto;
+-import edu.wpi.first.math.geometry.struct.Rotation2dStruct;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+ import edu.wpi.first.math.util.Units;
+ import edu.wpi.first.units.Angle;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
++
+ import java.util.Objects;
+ 
+ /**
+@@ -31,7 +28,7 @@ import java.util.Objects;
+ @JsonIgnoreProperties(ignoreUnknown = true)
+ @JsonAutoDetect(getterVisibility = JsonAutoDetect.Visibility.NONE)
+ public class Rotation2d
+-    implements Interpolatable<Rotation2d>, ProtobufSerializable, StructSerializable {
++    implements Interpolatable<Rotation2d> {
+   private final double m_value;
+   private final double m_cos;
+   private final double m_sin;
+@@ -274,10 +271,4 @@ public class Rotation2d
+   public Rotation2d interpolate(Rotation2d endValue, double t) {
+     return plus(endValue.minus(this).times(MathUtil.clamp(t, 0, 1)));
+   }
+-
+-  /** Rotation2d protobuf for serialization. */
+-  public static final Rotation2dProto proto = new Rotation2dProto();
+-
+-  /** Rotation2d struct for serialization. */
+-  public static final Rotation2dStruct struct = new Rotation2dStruct();
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
+index 68747af423a8357164b6cb5afafecc4620a9f6a7..bb69d4b61d96e0b337c9c050158d07fb887b7cfc 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Transform2d.java
+@@ -6,16 +6,12 @@ package edu.wpi.first.math.geometry;
+ 
+ import static edu.wpi.first.units.Units.Meters;
+ 
+-import edu.wpi.first.math.geometry.proto.Transform2dProto;
+-import edu.wpi.first.math.geometry.struct.Transform2dStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Objects;
+ 
+ /** Represents a transformation for a Pose2d in the pose's frame. */
+-public class Transform2d implements ProtobufSerializable, StructSerializable {
++public class Transform2d {
+   private final Translation2d m_translation;
+   private final Rotation2d m_rotation;
+ 
+@@ -183,10 +179,4 @@ public class Transform2d implements ProtobufSerializable, StructSerializable {
+   public int hashCode() {
+     return Objects.hash(m_translation, m_rotation);
+   }
+-
+-  /** Transform2d protobuf for serialization. */
+-  public static final Transform2dProto proto = new Transform2dProto();
+-
+-  /** Transform2d struct for serialization. */
+-  public static final Transform2dStruct struct = new Transform2dStruct();
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+index 4d04df354e37162dd3229f4d16979161e04bbf24..40166bc2e48233c67f7ea4a1be503bf44c6dfa51 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Translation2d.java
+@@ -13,14 +13,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.VecBuilder;
+ import edu.wpi.first.math.Vector;
+-import edu.wpi.first.math.geometry.proto.Translation2dProto;
+-import edu.wpi.first.math.geometry.struct.Translation2dStruct;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+ import edu.wpi.first.math.numbers.N2;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Collections;
+ import java.util.Comparator;
+ import java.util.List;
+@@ -35,7 +31,7 @@ import java.util.Objects;
+ @JsonIgnoreProperties(ignoreUnknown = true)
+ @JsonAutoDetect(getterVisibility = JsonAutoDetect.Visibility.NONE)
+ public class Translation2d
+-    implements Interpolatable<Translation2d>, ProtobufSerializable, StructSerializable {
++    implements Interpolatable<Translation2d> {
+   private final double m_x;
+   private final double m_y;
+ 
+@@ -271,10 +267,4 @@ public class Translation2d
+         MathUtil.interpolate(this.getX(), endValue.getX(), t),
+         MathUtil.interpolate(this.getY(), endValue.getY(), t));
+   }
+-
+-  /** Translation2d protobuf for serialization. */
+-  public static final Translation2dProto proto = new Translation2dProto();
+-
+-  /** Translation2d struct for serialization. */
+-  public static final Translation2dStruct struct = new Translation2dStruct();
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/geometry/Twist2d.java b/wpimath/src/main/java/edu/wpi/first/math/geometry/Twist2d.java
+index 53ab6ba9c2a6605d1dde154ce3c29c66a9dbbe6e..83336b003483c6fa4c4e42d4aa825f1e5b4aa5a3 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/geometry/Twist2d.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/geometry/Twist2d.java
+@@ -4,10 +4,6 @@
+ 
+ package edu.wpi.first.math.geometry;
+ 
+-import edu.wpi.first.math.geometry.proto.Twist2dProto;
+-import edu.wpi.first.math.geometry.struct.Twist2dStruct;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Objects;
+ 
+ /**
+@@ -16,7 +12,7 @@ import java.util.Objects;
+  *
+  * <p>A Twist can be used to represent a difference between two poses.
+  */
+-public class Twist2d implements ProtobufSerializable, StructSerializable {
++public class Twist2d {
+   /** Linear "dx" component. */
+   public double dx;
+ 
+@@ -67,10 +63,4 @@ public class Twist2d implements ProtobufSerializable, StructSerializable {
+   public int hashCode() {
+     return Objects.hash(dx, dy, dtheta);
+   }
+-
+-  /** Twist2d protobuf for serialization. */
+-  public static final Twist2dProto proto = new Twist2dProto();
+-
+-  /** Twist2d struct for serialization. */
+-  public static final Twist2dStruct struct = new Twist2dStruct();
+ }
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+index 36e4738231b82f373190c23fd30c6033eeccfef0..5e42608b3f8450e99e97f2cf10324a56c5c22208 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/ChassisSpeeds.java
+@@ -12,15 +12,11 @@ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.math.kinematics.proto.ChassisSpeedsProto;
+-import edu.wpi.first.math.kinematics.struct.ChassisSpeedsStruct;
+ import edu.wpi.first.units.Angle;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+ import edu.wpi.first.units.Time;
+ import edu.wpi.first.units.Velocity;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ 
+ /**
+  * Represents the speed of a robot chassis. Although this class contains similar members compared to
+@@ -31,7 +27,7 @@ import edu.wpi.first.util.struct.StructSerializable;
+  * component because it can never move sideways. Holonomic drivetrains such as swerve and mecanum
+  * will often have all three components.
+  */
+-public class ChassisSpeeds implements ProtobufSerializable, StructSerializable {
++public class ChassisSpeeds {
+   /** Velocity along the x-axis. (Fwd is +) */
+   public double vxMetersPerSecond;
+ 
+@@ -40,13 +36,6 @@ public class ChassisSpeeds implements ProtobufSerializable, StructSerializable {
+ 
+   /** Represents the angular velocity of the robot frame. (CCW is +) */
+   public double omegaRadiansPerSecond;
+-
+-  /** ChassisSpeeds protobuf for serialization. */
+-  public static final ChassisSpeedsProto proto = new ChassisSpeedsProto();
+-
+-  /** ChassisSpeeds struct for serialization. */
+-  public static final ChassisSpeedsStruct struct = new ChassisSpeedsStruct();
+-
+   /** Constructs a ChassisSpeeds with zeros for dx, dy, and theta. */
+   public ChassisSpeeds() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
+index 1d18b005daa0ea2c3eddd9f8b815fb12f02b6816..bfa41fe1a3952a43d169e1a422b9e4967a80acc7 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveKinematics.java
+@@ -9,12 +9,8 @@ import static edu.wpi.first.units.Units.Meters;
+ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.math.kinematics.proto.DifferentialDriveKinematicsProto;
+-import edu.wpi.first.math.kinematics.struct.DifferentialDriveKinematicsStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ 
+ /**
+  * Helper class that converts a chassis velocity (dx and dtheta components) to left and right wheel
+@@ -25,20 +21,10 @@ import edu.wpi.first.util.struct.StructSerializable;
+  * chassis speed.
+  */
+ public class DifferentialDriveKinematics
+-    implements Kinematics<DifferentialDriveWheelSpeeds, DifferentialDriveWheelPositions>,
+-        ProtobufSerializable,
+-        StructSerializable {
++    implements Kinematics<DifferentialDriveWheelSpeeds, DifferentialDriveWheelPositions> {
+   /** Differential drive trackwidth. */
+   public final double trackWidthMeters;
+ 
+-  /** DifferentialDriveKinematics protobuf for serialization. */
+-  public static final DifferentialDriveKinematicsProto proto =
+-      new DifferentialDriveKinematicsProto();
+-
+-  /** DifferentialDriveKinematics struct for serialization. */
+-  public static final DifferentialDriveKinematicsStruct struct =
+-      new DifferentialDriveKinematicsStruct();
+-
+   /**
+    * Constructs a differential drive kinematics object.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
+index d6036b8747b82d083742670c88575e61af868d27..fbdf54d8818f071de58a588221d6f6e11110a5aa 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelPositions.java
+@@ -7,8 +7,6 @@ package edu.wpi.first.math.kinematics;
+ import static edu.wpi.first.units.Units.Meters;
+ 
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.math.kinematics.proto.DifferentialDriveWheelPositionsProto;
+-import edu.wpi.first.math.kinematics.struct.DifferentialDriveWheelPositionsStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+ import java.util.Objects;
+@@ -22,14 +20,6 @@ public class DifferentialDriveWheelPositions
+   /** Distance measured by the right side. */
+   public double rightMeters;
+ 
+-  /** DifferentialDriveWheelPostions struct for serialization. */
+-  public static final DifferentialDriveWheelPositionsStruct struct =
+-      new DifferentialDriveWheelPositionsStruct();
+-
+-  /** DifferentialDriveWheelPostions struct for serialization. */
+-  public static final DifferentialDriveWheelPositionsProto proto =
+-      new DifferentialDriveWheelPositionsProto();
+-
+   /**
+    * Constructs a DifferentialDriveWheelPositions.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
+index de188179534beda1c4bf90120aa5573be5214c6e..72578226bb7532ea15ec29b571da389189682282 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/DifferentialDriveWheelSpeeds.java
+@@ -6,30 +6,18 @@ package edu.wpi.first.math.kinematics;
+ 
+ import static edu.wpi.first.units.Units.MetersPerSecond;
+ 
+-import edu.wpi.first.math.kinematics.proto.DifferentialDriveWheelSpeedsProto;
+-import edu.wpi.first.math.kinematics.struct.DifferentialDriveWheelSpeedsStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+ import edu.wpi.first.units.Velocity;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ 
+ /** Represents the wheel speeds for a differential drive drivetrain. */
+-public class DifferentialDriveWheelSpeeds implements ProtobufSerializable, StructSerializable {
++public class DifferentialDriveWheelSpeeds {
+   /** Speed of the left side of the robot. */
+   public double leftMetersPerSecond;
+ 
+   /** Speed of the right side of the robot. */
+   public double rightMetersPerSecond;
+ 
+-  /** DifferentialDriveWheelSpeeds protobuf for serialization. */
+-  public static final DifferentialDriveWheelSpeedsProto proto =
+-      new DifferentialDriveWheelSpeedsProto();
+-
+-  /** DifferentialDriveWheelSpeeds struct for serialization. */
+-  public static final DifferentialDriveWheelSpeedsStruct struct =
+-      new DifferentialDriveWheelSpeedsStruct();
+-
+   /** Constructs a DifferentialDriveWheelSpeeds with zeros for left and right speeds. */
+   public DifferentialDriveWheelSpeeds() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
+index 6c8056f9bab34ac15b8faba28e3b84cb541db2b8..7382da9beb9163cd7535cdcef813b48720a9a0aa 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveKinematics.java
+@@ -8,10 +8,6 @@ import edu.wpi.first.math.MathSharedStore;
+ import edu.wpi.first.math.MathUsageId;
+ import edu.wpi.first.math.geometry.Translation2d;
+ import edu.wpi.first.math.geometry.Twist2d;
+-import edu.wpi.first.math.kinematics.proto.MecanumDriveKinematicsProto;
+-import edu.wpi.first.math.kinematics.struct.MecanumDriveKinematicsStruct;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import org.ejml.simple.SimpleMatrix;
+ 
+ /**
+@@ -35,9 +31,7 @@ import org.ejml.simple.SimpleMatrix;
+  * field using encoders and a gyro.
+  */
+ public class MecanumDriveKinematics
+-    implements Kinematics<MecanumDriveWheelSpeeds, MecanumDriveWheelPositions>,
+-        ProtobufSerializable,
+-        StructSerializable {
++    implements Kinematics<MecanumDriveWheelSpeeds, MecanumDriveWheelPositions> {
+   private final SimpleMatrix m_inverseKinematics;
+   private final SimpleMatrix m_forwardKinematics;
+ 
+@@ -48,12 +42,6 @@ public class MecanumDriveKinematics
+ 
+   private Translation2d m_prevCoR = new Translation2d();
+ 
+-  /** MecanumDriveKinematics protobuf for serialization. */
+-  public static final MecanumDriveKinematicsProto proto = new MecanumDriveKinematicsProto();
+-
+-  /** MecanumDriveKinematics struct for serialization. */
+-  public static final MecanumDriveKinematicsStruct struct = new MecanumDriveKinematicsStruct();
+-
+   /**
+    * Constructs a mecanum drive kinematics object.
+    *
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
+index 179e1bf14b591dc4867a3f1d837f25e091d4fde1..d2e45960b047a08da30349a800be4aa0afb3a3aa 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelPositions.java
+@@ -7,19 +7,13 @@ package edu.wpi.first.math.kinematics;
+ import static edu.wpi.first.units.Units.Meters;
+ 
+ import edu.wpi.first.math.MathUtil;
+-import edu.wpi.first.math.kinematics.proto.MecanumDriveWheelPositionsProto;
+-import edu.wpi.first.math.kinematics.struct.MecanumDriveWheelPositionsStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Objects;
+ 
+ /** Represents the wheel positions for a mecanum drive drivetrain. */
+ public class MecanumDriveWheelPositions
+-    implements WheelPositions<MecanumDriveWheelPositions>,
+-        ProtobufSerializable,
+-        StructSerializable {
++    implements WheelPositions<MecanumDriveWheelPositions> {
+   /** Distance measured by the front left wheel. */
+   public double frontLeftMeters;
+ 
+@@ -32,13 +26,6 @@ public class MecanumDriveWheelPositions
+   /** Distance measured by the rear right wheel. */
+   public double rearRightMeters;
+ 
+-  /** MecanumDriveWheelPositions protobuf for serialization. */
+-  public static final MecanumDriveWheelPositionsProto proto = new MecanumDriveWheelPositionsProto();
+-
+-  /** MecanumDriveWheelPositions struct for serialization. */
+-  public static final MecanumDriveWheelPositionsStruct struct =
+-      new MecanumDriveWheelPositionsStruct();
+-
+   /** Constructs a MecanumDriveWheelPositions with zeros for all member fields. */
+   public MecanumDriveWheelPositions() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+index 59a34558a1db740ac0780bc9b7de6d9cae7022ee..d1a47bf43af65622872cf6b5699a3513b54ed71c 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/MecanumDriveWheelSpeeds.java
+@@ -6,16 +6,12 @@ package edu.wpi.first.math.kinematics;
+ 
+ import static edu.wpi.first.units.Units.MetersPerSecond;
+ 
+-import edu.wpi.first.math.kinematics.proto.MecanumDriveWheelSpeedsProto;
+-import edu.wpi.first.math.kinematics.struct.MecanumDriveWheelSpeedsStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+ import edu.wpi.first.units.Velocity;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ 
+ /** Represents the wheel speeds for a mecanum drive drivetrain. */
+-public class MecanumDriveWheelSpeeds implements ProtobufSerializable, StructSerializable {
++public class MecanumDriveWheelSpeeds {
+   /** Speed of the front left wheel. */
+   public double frontLeftMetersPerSecond;
+ 
+@@ -28,12 +24,6 @@ public class MecanumDriveWheelSpeeds implements ProtobufSerializable, StructSeri
+   /** Speed of the rear right wheel. */
+   public double rearRightMetersPerSecond;
+ 
+-  /** MecanumDriveWheelSpeeds protobuf for serialization. */
+-  public static final MecanumDriveWheelSpeedsProto proto = new MecanumDriveWheelSpeedsProto();
+-
+-  /** MecanumDriveWheelSpeeds struct for serialization. */
+-  public static final MecanumDriveWheelSpeedsStruct struct = new MecanumDriveWheelSpeedsStruct();
+-
+   /** Constructs a MecanumDriveWheelSpeeds with zeros for all member fields. */
+   public MecanumDriveWheelSpeeds() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
+index 3041d42cd0fe7b596d2375676c70919a57fc4f57..704fc750c0cbd974a6fb58d4860cde2d52f61f3b 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModulePosition.java
+@@ -9,32 +9,20 @@ import static edu.wpi.first.units.Units.Meters;
+ import edu.wpi.first.math.MathUtil;
+ import edu.wpi.first.math.geometry.Rotation2d;
+ import edu.wpi.first.math.interpolation.Interpolatable;
+-import edu.wpi.first.math.kinematics.proto.SwerveModulePositionProto;
+-import edu.wpi.first.math.kinematics.struct.SwerveModulePositionStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Objects;
+ 
+ /** Represents the state of one swerve module. */
+ public class SwerveModulePosition
+     implements Comparable<SwerveModulePosition>,
+-        Interpolatable<SwerveModulePosition>,
+-        ProtobufSerializable,
+-        StructSerializable {
++        Interpolatable<SwerveModulePosition> {
+   /** Distance measured by the wheel of the module. */
+   public double distanceMeters;
+ 
+   /** Angle of the module. */
+   public Rotation2d angle = Rotation2d.fromDegrees(0);
+ 
+-  /** SwerveModulePosition protobuf for serialization. */
+-  public static final SwerveModulePositionProto proto = new SwerveModulePositionProto();
+-
+-  /** SwerveModulePosition struct for serialization. */
+-  public static final SwerveModulePositionStruct struct = new SwerveModulePositionStruct();
+-
+   /** Constructs a SwerveModulePosition with zeros for distance and angle. */
+   public SwerveModulePosition() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+index a0258a315e907b229529207b529149a03f678d0f..880c2111f13d860e29d371ffe2244885dc6f676a 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/kinematics/SwerveModuleState.java
+@@ -7,30 +7,20 @@ package edu.wpi.first.math.kinematics;
+ import static edu.wpi.first.units.Units.MetersPerSecond;
+ 
+ import edu.wpi.first.math.geometry.Rotation2d;
+-import edu.wpi.first.math.kinematics.proto.SwerveModuleStateProto;
+-import edu.wpi.first.math.kinematics.struct.SwerveModuleStateStruct;
+ import edu.wpi.first.units.Distance;
+ import edu.wpi.first.units.Measure;
+ import edu.wpi.first.units.Velocity;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+-import edu.wpi.first.util.struct.StructSerializable;
+ import java.util.Objects;
+ 
+ /** Represents the state of one swerve module. */
+ public class SwerveModuleState
+-    implements Comparable<SwerveModuleState>, ProtobufSerializable, StructSerializable {
++    implements Comparable<SwerveModuleState> {
+   /** Speed of the wheel of the module. */
+   public double speedMetersPerSecond;
+ 
+   /** Angle of the module. */
+   public Rotation2d angle = Rotation2d.fromDegrees(0);
+ 
+-  /** SwerveModuleState protobuf for serialization. */
+-  public static final SwerveModuleStateProto proto = new SwerveModuleStateProto();
+-
+-  /** SwerveModuleState struct for serialization. */
+-  public static final SwerveModuleStateStruct struct = new SwerveModuleStateStruct();
+-
+   /** Constructs a SwerveModuleState with zeros for speed and angle. */
+   public SwerveModuleState() {}
+ 
+diff --git a/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java b/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
+index 9d5cdc2e904ab233e865b548737c5f3f7a7b50e3..1a49d87942570fb82fbec99f85c6b85d2b10dcfe 100644
+--- a/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
++++ b/wpimath/src/main/java/edu/wpi/first/math/trajectory/Trajectory.java
+@@ -7,9 +7,6 @@ package edu.wpi.first.math.trajectory;
+ import com.fasterxml.jackson.annotation.JsonProperty;
+ import edu.wpi.first.math.geometry.Pose2d;
+ import edu.wpi.first.math.geometry.Transform2d;
+-import edu.wpi.first.math.trajectory.proto.TrajectoryProto;
+-import edu.wpi.first.math.trajectory.proto.TrajectoryStateProto;
+-import edu.wpi.first.util.protobuf.ProtobufSerializable;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Objects;
+@@ -19,10 +16,7 @@ import java.util.stream.Collectors;
+  * Represents a time-parameterized trajectory. The trajectory contains of various States that
+  * represent the pose, curvature, time elapsed, velocity, and acceleration at that point.
+  */
+-public class Trajectory implements ProtobufSerializable {
+-  /** Trajectory protobuf for serialization. */
+-  public static final TrajectoryProto proto = new TrajectoryProto();
+-
++public class Trajectory {
+   private final double m_totalTimeSeconds;
+   private final List<State> m_states;
+ 
+@@ -269,10 +263,7 @@ public class Trajectory implements ProtobufSerializable {
+    * Represents a time-parameterized trajectory. The trajectory contains of various States that
+    * represent the pose, curvature, time elapsed, velocity, and acceleration at that point.
+    */
+-  public static class State implements ProtobufSerializable {
+-    /** Trajectory.State protobuf for serialization. */
+-    public static final TrajectoryStateProto proto = new TrajectoryStateProto();
+-
++  public static class State {
+     /** The time elapsed since the beginning of the trajectory. */
+     @JsonProperty("time")
+     public double timeSeconds;
