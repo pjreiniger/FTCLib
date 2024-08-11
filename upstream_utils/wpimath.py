@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from pathlib import Path
 from typing import List
 import shutil
@@ -10,9 +12,8 @@ from upstream_utils import Lib
 def copy_file(wpilib_path: Path, ftclib_path: Path):
     ftclib_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Copy the file
     shutil.copy(wpilib_path, ftclib_path)
-
-    #     print(f"Copying {wpilib_path}")
 
     try:
         contents = ftclib_path.read_text(encoding="utf-8")
@@ -100,8 +101,6 @@ def copy_file(wpilib_path: Path, ftclib_path: Path):
     contents = re.sub("import com.arcrobotics.ftclib.MathUsageId;\n", "", contents)
 
     # Replace json
-#     #     contents = re.sub(r"@JsonProperty\(.*?\)\n", "", contents)
-#     contents = re.sub(r"@JsonProperty.*?", "", contents)
     contents = re.sub(r"@JsonIgnoreProperties\(.*?\)", "", contents)
     contents = re.sub(r"@JsonAutoDetect\(.*?\)", "", contents)
     contents = re.sub("import com.fasterxml.*", "", contents)
@@ -223,8 +222,6 @@ def copy_kinematics(wpilib_root, ftclib_root):
         "MecanumDriveWheelSpeeds.java",
         "MecanumDriveWheelPositions.java",
         "Odometry.java",
-        #         "MecanumOdoKinematics.java",
-        #         "OdoWheelSpeeds.java",
         "SwerveDriveKinematics.java",
         "SwerveDriveOdometry.java",
         "SwerveDriveWheelPositions.java",
@@ -314,9 +311,7 @@ def copy_interpolation(wpilib_root, ftclib_root):
     for f in files:
         copy_file(
             wpilib_root / "wpimath/src/main/java/edu/wpi/first/math/interpolation" / f,
-            ftclib_root
-            / "core/src/main/java/com/arcrobotics/ftclib/interpolation"
-            / f,
+            ftclib_root / "core/src/main/java/com/arcrobotics/ftclib/interpolation" / f,
         )
 
     files = [
@@ -328,19 +323,29 @@ def copy_interpolation(wpilib_root, ftclib_root):
     for f in files:
         copy_file(
             wpilib_root / "wpimath/src/test/java/edu/wpi/first/math/interpolation" / f,
-            ftclib_root
-            / "core/src/test/java/com/arcrobotics/ftclib/interpolation"
-            / f,
+            ftclib_root / "core/src/test/java/com/arcrobotics/ftclib/interpolation" / f,
         )
+
 
 def copy_wpimath_utils(wpilib_root, ftclib_root):
     files = [
-    ("wpimath/src/main/java/edu/wpi/first/math/MathUtil.java", "core/src/main/java/com/arcrobotics/ftclib/util/MathUtil.java"),
-    ("wpimath/src/main/java/edu/wpi/first/math/util/Units.java", "core/src/main/java/com/arcrobotics/ftclib/util/Units.java"),
-
-    # Tests
-    ("wpimath/src/test/java/edu/wpi/first/math/MathUtilTest.java", "core/src/test/java/com/arcrobotics/ftclib/util/MathUtilTest.java"),
-    ("wpimath/src/test/java/edu/wpi/first/math/util/UnitsTest.java", "core/src/test/java/com/arcrobotics/ftclib/util/UnitsTest.java"),
+        (
+            "wpimath/src/main/java/edu/wpi/first/math/MathUtil.java",
+            "core/src/main/java/com/arcrobotics/ftclib/util/MathUtil.java",
+        ),
+        (
+            "wpimath/src/main/java/edu/wpi/first/math/util/Units.java",
+            "core/src/main/java/com/arcrobotics/ftclib/util/Units.java",
+        ),
+        # Tests
+        (
+            "wpimath/src/test/java/edu/wpi/first/math/MathUtilTest.java",
+            "core/src/test/java/com/arcrobotics/ftclib/util/MathUtilTest.java",
+        ),
+        (
+            "wpimath/src/test/java/edu/wpi/first/math/util/UnitsTest.java",
+            "core/src/test/java/com/arcrobotics/ftclib/util/UnitsTest.java",
+        ),
     ]
 
     for wpi_path, ftc_path in files:
@@ -349,34 +354,37 @@ def copy_wpimath_utils(wpilib_root, ftclib_root):
             ftclib_root / ftc_path,
         )
 
-
     # Hand cleanup mathutil
-    mathutil = ftclib_root / "core/src/main/java/com/arcrobotics/ftclib/util/MathUtil.java"
+    mathutil = (
+        ftclib_root / "core/src/main/java/com/arcrobotics/ftclib/util/MathUtil.java"
+    )
     contents = mathutil.read_text(encoding="utf-8")
-    contents = contents.replace("package com.arcrobotics.ftclib;", "package com.arcrobotics.ftclib.util;")
+    contents = contents.replace(
+        "package com.arcrobotics.ftclib;", "package com.arcrobotics.ftclib.util;"
+    )
     mathutil.write_text(contents, encoding="utf-8")
 
-    mathutil = ftclib_root / "core/src/test/java/com/arcrobotics/ftclib/util/MathUtilTest.java"
+    mathutil = (
+        ftclib_root / "core/src/test/java/com/arcrobotics/ftclib/util/MathUtilTest.java"
+    )
     contents = mathutil.read_text(encoding="utf-8")
-    contents = contents.replace("package com.arcrobotics.ftclib;", "package com.arcrobotics.ftclib.util;")
+    contents = contents.replace(
+        "package com.arcrobotics.ftclib;", "package com.arcrobotics.ftclib.util;"
+    )
     mathutil.write_text(contents, encoding="utf-8")
+
 
 def copy_wpiutil(wpilib_root, ftclib_root):
     files = [
-    "ErrorMessages.java",
+        "ErrorMessages.java",
     ]
 
     for f in files:
-        ftc_file = (
-            ftclib_root
-            / "core/src/main/java/com/arcrobotics/ftclib/util"
-            / f
-        )
+        ftc_file = ftclib_root / "core/src/main/java/com/arcrobotics/ftclib/util" / f
         copy_file(
             wpilib_root / "wpiutil/src/main/java/edu/wpi/first/util" / f,
             ftc_file,
         )
-
 
     files = [
         "ErrorMessagesTest.java",
@@ -385,10 +393,9 @@ def copy_wpiutil(wpilib_root, ftclib_root):
     for f in files:
         copy_file(
             wpilib_root / "wpiutil/src/test/java/edu/wpi/first/util" / f,
-            ftclib_root
-            / "core/src/test/java/com/arcrobotics/ftclib/util"
-            / f,
+            ftclib_root / "core/src/test/java/com/arcrobotics/ftclib/util" / f,
         )
+
 
 def copy_upstream_src(ftclib_root):
     ftclib_root = Path(ftclib_root)
@@ -419,6 +426,7 @@ def main():
 
     wpimath = Lib(name, url, tag, copy_upstream_src, patch_options)
     wpimath.main()
+
 
 if __name__ == "__main__":
     main()
