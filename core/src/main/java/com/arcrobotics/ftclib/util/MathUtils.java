@@ -7,6 +7,8 @@
 
 package com.arcrobotics.ftclib.util;
 
+/** @deprecated Use {@link MathUtil} instead. */
+@Deprecated
 public final class MathUtils {
     private MathUtils() {
         throw new AssertionError("utility class");

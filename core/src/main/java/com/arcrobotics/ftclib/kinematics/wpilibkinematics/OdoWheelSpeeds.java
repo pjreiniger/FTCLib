@@ -1,5 +1,6 @@
 package com.arcrobotics.ftclib.kinematics.wpilibkinematics;
 
+@Deprecated
 public class OdoWheelSpeeds {
     /** Speed of the left side of the robot. */
     public double leftMetersPerSecond;

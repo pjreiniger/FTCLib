@@ -15,6 +15,11 @@ task androidJavadocs(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
     ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
     classpath += files(ext.androidJar)
+
+    // Enables UTF-8 support in Javadoc
+    options.addStringOption("charset", "utf-8")
+    options.addStringOption("docencoding", "utf-8")
+    options.addStringOption("encoding", "utf-8")
 }
 
 task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {

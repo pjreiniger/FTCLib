@@ -5,6 +5,11 @@ import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Twist2d;
 import java.util.function.DoubleSupplier;
 
+/**
+ * @deprecated Use {@link com.arcrobotics.ftclib.kinematics.wpilibkinematics.MecanumDriveOdometry}
+ *     instead.
+ */
+@Deprecated
 public class HolonomicOdometry extends Odometry {
     private double prevLeftEncoder, prevRightEncoder, prevHorizontalEncoder;
     private Rotation2d previousAngle;

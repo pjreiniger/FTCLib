@@ -3,6 +3,8 @@ package com.arcrobotics.ftclib.kinematics.wpilibkinematics;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import org.ejml.simple.SimpleMatrix;
 
+/** @deprecated Use {@link MecanumDriveOdometry} instead. */
+@Deprecated
 public class MecanumOdoKinematics {
     private SimpleMatrix m_inverseKinematics;
     private final SimpleMatrix m_forwardKinematics;

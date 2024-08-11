@@ -9,6 +9,9 @@ import java.util.function.DoubleSupplier;
 /**
  * The classfile that performs odometry calculations for a differential drivetrain. For more
  * information on the differential drivebase, see {@link DifferentialDrive}.
+ *
+ * @deprecated Use {@link
+ *     com.arcrobotics.ftclib.kinematics.wpilibkinematics.DifferentialDriveOdometry} instead.
  */
 public class DifferentialOdometry extends Odometry {
     private double prevLeftEncoder, prevRightEncoder;

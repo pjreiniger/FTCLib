@@ -2,6 +2,7 @@ package com.arcrobotics.ftclib.kinematics;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 
+/** @deprecated Use {@link com.arcrobotics.ftclib.kinematics.wpilibkinematics.Odometry} instead. */
 public abstract class Odometry {
     /** The {@link Pose2d} of the robot. */
     protected Pose2d robotPose;
