@@ -1,14 +1,9 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory;
 
-import android.os.Build;
-import androidx.annotation.RequiresApi;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Transform2d;
 import java.util.ArrayList;
@@ -24,13 +19,25 @@ public class Trajectory {
     private final double m_totalTimeSeconds;
     private final List<State> m_states;
 
+    /** Constructs an empty trajectory. */
+    public Trajectory() {
+        m_states = new ArrayList<>();
+        m_totalTimeSeconds = 0.0;
+    }
+
     /**
      * Constructs a trajectory from a vector of states.
      *
      * @param states A vector of states.
+     * @throws IllegalArgumentException if the vector of states is empty.
      */
     public Trajectory(final List<State> states) {
         m_states = states;
+
+        if (m_states.isEmpty()) {
+            throw new IllegalArgumentException("Trajectory manually created with no states.");
+        }
+
         m_totalTimeSeconds = m_states.get(m_states.size() - 1).timeSeconds;
     }
 
@@ -42,7 +49,6 @@ public class Trajectory {
      * @param t The fraction for interpolation.
      * @return The interpolated value.
      */
-    @SuppressWarnings("ParameterName")
     private static double lerp(double startValue, double endValue, double t) {
         return startValue + (endValue - startValue) * t;
     }
@@ -55,7 +61,6 @@ public class Trajectory {
      * @param t The fraction for interpolation.
      * @return The interpolated pose.
      */
-    @SuppressWarnings("ParameterName")
     private static Pose2d lerp(Pose2d startValue, Pose2d endValue, double t) {
         return startValue.plus((endValue.minus(startValue)).times(t));
     }
@@ -92,8 +97,13 @@ public class Trajectory {
      *
      * @param timeSeconds The point in time since the beginning of the trajectory to sample.
      * @return The state at that point in time.
+     * @throws IllegalStateException if the trajectory has no states.
      */
     public State sample(double timeSeconds) {
+        if (m_states.isEmpty()) {
+            throw new IllegalStateException("Trajectory cannot be sampled if it has no states.");
+        }
+
         if (timeSeconds <= m_states.get(0).timeSeconds) {
             return m_states.get(0);
         }
@@ -150,7 +160,6 @@ public class Trajectory {
      * @param transform The transform to transform the trajectory by.
      * @return The transformed trajectory.
      */
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public Trajectory transformBy(Transform2d transform) {
         State firstState = m_states.get(0);
         Pose2d firstPose = firstState.poseMeters;
@@ -190,7 +199,6 @@ public class Trajectory {
      *     will be transformed into.
      * @return The transformed trajectory.
      */
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public Trajectory relativeTo(Pose2d pose) {
         return new Trajectory(
                 m_states.stream()
@@ -206,26 +214,71 @@ public class Trajectory {
     }
 
     /**
+     * Concatenates another trajectory to the current trajectory. The user is responsible for making
+     * sure that the end pose of this trajectory and the start pose of the other trajectory match (if
+     * that is the desired behavior).
+     *
+     * @param other The trajectory to concatenate.
+     * @return The concatenated trajectory.
+     */
+    public Trajectory concatenate(Trajectory other) {
+        // If this is a default constructed trajectory with no states, then we can
+        // simply return the rhs trajectory.
+        if (m_states.isEmpty()) {
+            return other;
+        }
+
+        // Deep copy the current states.
+        List<State> states =
+                m_states.stream()
+                        .map(
+                                state ->
+                                        new State(
+                                                state.timeSeconds,
+                                                state.velocityMetersPerSecond,
+                                                state.accelerationMetersPerSecondSq,
+                                                state.poseMeters,
+                                                state.curvatureRadPerMeter))
+                        .collect(Collectors.toList());
+
+        // Here we omit the first state of the other trajectory because we don't want
+        // two time points with different states. Sample() will automatically
+        // interpolate between the end of this trajectory and the second state of the
+        // other trajectory.
+        for (int i = 1; i < other.getStates().size(); ++i) {
+            State s = other.getStates().get(i);
+            states.add(
+                    new State(
+                            s.timeSeconds + m_totalTimeSeconds,
+                            s.velocityMetersPerSecond,
+                            s.accelerationMetersPerSecondSq,
+                            s.poseMeters,
+                            s.curvatureRadPerMeter));
+        }
+        return new Trajectory(states);
+    }
+
+    /**
      * Represents a time-parameterized trajectory. The trajectory contains of various States that
      * represent the pose, curvature, time elapsed, velocity, and acceleration at that point.
      */
-    @SuppressWarnings("MemberName")
     public static class State {
-        // The time elapsed since the beginning of the trajectory.
+        /** The time elapsed since the beginning of the trajectory. */
         public double timeSeconds;
 
-        // The speed at that point of the trajectory.
+        /** The speed at that point of the trajectory. */
         public double velocityMetersPerSecond;
 
-        // The acceleration at that point of the trajectory.
+        /** The acceleration at that point of the trajectory. */
         public double accelerationMetersPerSecondSq;
 
-        // The pose at that point of the trajectory.
+        /** The pose at that point of the trajectory. */
         public Pose2d poseMeters;
 
-        // The curvature at that point of the trajectory.
+        /** The curvature at that point of the trajectory. */
         public double curvatureRadPerMeter;
 
+        /** Default constructor. */
         public State() {
             poseMeters = new Pose2d();
         }
@@ -259,7 +312,6 @@ public class Trajectory {
          * @param i The interpolant (fraction).
          * @return The interpolated state.
          */
-        @SuppressWarnings("ParameterName")
         State interpolate(State endValue, double i) {
             // Find the new t value.
             final double newT = lerp(timeSeconds, endValue.timeSeconds, i);
@@ -282,7 +334,7 @@ public class Trajectory {
             final double newV = velocityMetersPerSecond + (accelerationMetersPerSecondSq * deltaT);
 
             // Calculate the change in position.
-            // delta_s = v_0 t + 0.5 at^2
+            // delta_s = v_0 t + 0.5at²
             final double newS =
                     (velocityMetersPerSecond * deltaT
                                     + 0.5 * accelerationMetersPerSecondSq * Math.pow(deltaT, 2))
@@ -341,10 +393,19 @@ public class Trajectory {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public String toString() {
         String stateList = m_states.stream().map(State::toString).collect(Collectors.joining(", \n"));
         return String.format("Trajectory - Seconds: %.2f, States:\n%s", m_totalTimeSeconds, stateList);
+    }
+
+    @Override
+    public int hashCode() {
+        return m_states.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Trajectory && m_states.equals(((Trajectory) obj).getStates());
     }
 }

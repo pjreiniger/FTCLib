@@ -1,22 +1,27 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.controller.wpilibcontroller;
 
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.trajectory.TrapezoidProfile;
 
-/** Implements a PID control loop whose setpoint is constrained by a trapezoid profile. */
-@SuppressWarnings("PMD.TooManyMethods")
+/**
+ * Implements a PID control loop whose setpoint is constrained by a trapezoid profile. Users should
+ * call reset() when they first start running the controller to avoid unwanted behavior.
+ */
 public class ProfiledPIDController {
+    private static int instances;
+
     private PIDController m_controller;
+    private double m_minimumInput;
+    private double m_maximumInput;
+
+    private TrapezoidProfile.Constraints m_constraints;
+    private TrapezoidProfile m_profile;
     private TrapezoidProfile.State m_goal = new TrapezoidProfile.State();
     private TrapezoidProfile.State m_setpoint = new TrapezoidProfile.State();
-    private TrapezoidProfile.Constraints m_constraints;
 
     /**
      * Allocates a ProfiledPIDController with the given constants for Kp, Ki, and Kd.
@@ -25,12 +30,35 @@ public class ProfiledPIDController {
      * @param Ki The integral coefficient.
      * @param Kd The derivative coefficient.
      * @param constraints Velocity and acceleration constraints for goal.
+     * @throws IllegalArgumentException if kp &lt; 0
+     * @throws IllegalArgumentException if ki &lt; 0
+     * @throws IllegalArgumentException if kd &lt; 0
      */
-    @SuppressWarnings("ParameterName")
     public ProfiledPIDController(
             double Kp, double Ki, double Kd, TrapezoidProfile.Constraints constraints) {
+        this(Kp, Ki, Kd, constraints, 0.02);
+    }
+
+    /**
+     * Allocates a ProfiledPIDController with the given constants for Kp, Ki, and Kd.
+     *
+     * @param Kp The proportional coefficient.
+     * @param Ki The integral coefficient.
+     * @param Kd The derivative coefficient.
+     * @param constraints Velocity and acceleration constraints for goal.
+     * @param period The period between controller updates in seconds. The default is 0.02 seconds.
+     * @throws IllegalArgumentException if kp &lt; 0
+     * @throws IllegalArgumentException if ki &lt; 0
+     * @throws IllegalArgumentException if kd &lt; 0
+     * @throws IllegalArgumentException if period &lt;= 0
+     */
+    @SuppressWarnings("this-escape")
+    public ProfiledPIDController(
+            double Kp, double Ki, double Kd, TrapezoidProfile.Constraints constraints, double period) {
         m_controller = new PIDController(Kp, Ki, Kd);
         m_constraints = constraints;
+        m_profile = new TrapezoidProfile(m_constraints);
+        instances++;
     }
 
     /**
@@ -38,11 +66,10 @@ public class ProfiledPIDController {
      *
      * <p>Sets the proportional, integral, and differential coefficients.
      *
-     * @param Kp Proportional coefficient
-     * @param Ki Integral coefficient
-     * @param Kd Differential coefficient
+     * @param Kp The proportional coefficient. Must be &gt;= 0.
+     * @param Ki The integral coefficient. Must be &gt;= 0.
+     * @param Kd The differential coefficient. Must be &gt;= 0.
      */
-    @SuppressWarnings("ParameterName")
     public void setPID(double Kp, double Ki, double Kd) {
         m_controller.setPID(Kp, Ki, Kd);
     }
@@ -50,9 +77,8 @@ public class ProfiledPIDController {
     /**
      * Sets the proportional coefficient of the PID controller gain.
      *
-     * @param Kp proportional coefficient
+     * @param Kp The proportional coefficient. Must be &gt;= 0.
      */
-    @SuppressWarnings("ParameterName")
     public void setP(double Kp) {
         m_controller.setP(Kp);
     }
@@ -60,9 +86,8 @@ public class ProfiledPIDController {
     /**
      * Sets the integral coefficient of the PID controller gain.
      *
-     * @param Ki integral coefficient
+     * @param Ki The integral coefficient. Must be &gt;= 0.
      */
-    @SuppressWarnings("ParameterName")
     public void setI(double Ki) {
         m_controller.setI(Ki);
     }
@@ -70,9 +95,8 @@ public class ProfiledPIDController {
     /**
      * Sets the differential coefficient of the PID controller gain.
      *
-     * @param Kd differential coefficient
+     * @param Kd The differential coefficient. Must be &gt;= 0.
      */
-    @SuppressWarnings("ParameterName")
     public void setD(double Kd) {
         m_controller.setD(Kd);
     }
@@ -114,6 +138,24 @@ public class ProfiledPIDController {
     }
 
     /**
+     * Returns the position tolerance of this controller.
+     *
+     * @return the position tolerance of the controller.
+     */
+    public double getPositionTolerance() {
+        return m_controller.getTolerance()[0];
+    }
+
+    /**
+     * Returns the velocity tolerance of this controller.
+     *
+     * @return the velocity tolerance of the controller.
+     */
+    public double getVelocityTolerance() {
+        return m_controller.getTolerance()[1];
+    }
+
+    /**
      * Sets the goal for the ProfiledPIDController.
      *
      * @param goal The desired goal state.
@@ -131,7 +173,11 @@ public class ProfiledPIDController {
         m_goal = new TrapezoidProfile.State(goal, 0);
     }
 
-    /** Gets the goal for the ProfiledPIDController. */
+    /**
+     * Gets the goal for the ProfiledPIDController.
+     *
+     * @return The goal.
+     */
     public TrapezoidProfile.State getGoal() {
         return m_goal;
     }
@@ -140,6 +186,8 @@ public class ProfiledPIDController {
      * Returns true if the error is within the tolerance of the error.
      *
      * <p>This will return false until at least one input value has been computed.
+     *
+     * @return True if the error is within the tolerance of the error.
      */
     public boolean atGoal() {
         return atSetpoint() && m_goal.equals(m_setpoint);
@@ -152,6 +200,16 @@ public class ProfiledPIDController {
      */
     public void setConstraints(TrapezoidProfile.Constraints constraints) {
         m_constraints = constraints;
+        m_profile = new TrapezoidProfile(m_constraints);
+    }
+
+    /**
+     * Get the velocity and acceleration constraints for this controller.
+     *
+     * @return Velocity and acceleration constraints.
+     */
+    public TrapezoidProfile.Constraints getConstraints() {
+        return m_constraints;
     }
 
     /**
@@ -167,9 +225,24 @@ public class ProfiledPIDController {
      * Returns true if the error is within the tolerance of the error.
      *
      * <p>This will return false until at least one input value has been computed.
+     *
+     * @return True if the error is within the tolerance of the error.
      */
     public boolean atSetpoint() {
         return m_controller.atSetPoint();
+    }
+
+    /**
+     * Sets the minimum and maximum values for the integrator.
+     *
+     * <p>When the cap is reached, the integrator value is added to the controller output rather than
+     * the integrator value times the integral gain.
+     *
+     * @param minimumIntegral The minimum value of the integrator.
+     * @param maximumIntegral The maximum value of the integrator.
+     */
+    public void setIntegratorRange(double minimumIntegral, double maximumIntegral) {
+        m_controller.setIntegrationBounds(minimumIntegral, maximumIntegral);
     }
 
     /**
@@ -200,7 +273,11 @@ public class ProfiledPIDController {
         return m_controller.getPositionError();
     }
 
-    /** Returns the change in error per second. */
+    /**
+     * Returns the change in error per second.
+     *
+     * @return The change in error per second.
+     */
     public double getVelocityError() {
         return m_controller.getVelocityError();
     }
@@ -209,10 +286,10 @@ public class ProfiledPIDController {
      * Returns the next output of the PID controller.
      *
      * @param measurement The current measurement of the process variable.
+     * @return The controller's next output.
      */
     public double calculate(double measurement) {
-        TrapezoidProfile profile = new TrapezoidProfile(m_constraints, m_goal, m_setpoint);
-        m_setpoint = profile.calculate(getPeriod());
+        m_setpoint = m_profile.calculate(getPeriod(), m_setpoint, m_goal);
         return m_controller.calculate(measurement, m_setpoint.position);
     }
 
@@ -221,6 +298,7 @@ public class ProfiledPIDController {
      *
      * @param measurement The current measurement of the process variable.
      * @param goal The new goal of the controller.
+     * @return The controller's next output.
      */
     public double calculate(double measurement, TrapezoidProfile.State goal) {
         setGoal(goal);
@@ -232,6 +310,7 @@ public class ProfiledPIDController {
      *
      * @param measurement The current measurement of the process variable.
      * @param goal The new goal of the controller.
+     * @return The controller's next output.
      */
     public double calculate(double measurement, double goal) {
         setGoal(goal);
@@ -244,6 +323,7 @@ public class ProfiledPIDController {
      * @param measurement The current measurement of the process variable.
      * @param goal The new goal of the controller.
      * @param constraints Velocity and acceleration constraints for goal.
+     * @return The controller's next output.
      */
     public double calculate(
             double measurement, TrapezoidProfile.State goal, TrapezoidProfile.Constraints constraints) {

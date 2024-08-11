@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.controller.wpilibcontroller;
 
@@ -11,11 +8,17 @@ package com.arcrobotics.ftclib.controller.wpilibcontroller;
  * A helper class that computes feedforward outputs for a simple elevator (modeled as a motor acting
  * against the force of gravity).
  */
-@SuppressWarnings("MemberName")
 public class ElevatorFeedforward {
+    /** The static gain. */
     public final double ks;
+
+    /** The gravity gain. */
     public final double kg;
+
+    /** The velocity gain. */
     public final double kv;
+
+    /** The acceleration gain. */
     public final double ka;
 
     /**
@@ -26,12 +29,20 @@ public class ElevatorFeedforward {
      * @param kg The gravity gain.
      * @param kv The velocity gain.
      * @param ka The acceleration gain.
+     * @throws IllegalArgumentException for kv &lt; zero.
+     * @throws IllegalArgumentException for ka &lt; zero.
      */
     public ElevatorFeedforward(double ks, double kg, double kv, double ka) {
         this.ks = ks;
         this.kg = kg;
         this.kv = kv;
         this.ka = ka;
+        if (kv < 0.0) {
+            throw new IllegalArgumentException("kv must be a non-negative number, got " + kv + "!");
+        }
+        if (ka < 0.0) {
+            throw new IllegalArgumentException("ka must be a non-negative number, got " + ka + "!");
+        }
     }
 
     /**

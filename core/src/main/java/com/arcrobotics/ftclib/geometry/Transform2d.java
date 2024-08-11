@@ -1,6 +1,12 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package com.arcrobotics.ftclib.geometry;
 
-/** Represents a transformation for a Pose2d. */
+import java.util.Objects;
+
+/** Represents a transformation for a Pose2d in the pose's frame. */
 public class Transform2d {
     private final Translation2d m_translation;
     private final Rotation2d m_rotation;
@@ -34,6 +40,18 @@ public class Transform2d {
         m_rotation = rotation;
     }
 
+    /**
+     * Constructs a transform with x and y translations instead of a separate Translation2d.
+     *
+     * @param x The x component of the translational component of the transform.
+     * @param y The y component of the translational component of the transform.
+     * @param rotation The rotational component of the transform.
+     */
+    public Transform2d(double x, double y, Rotation2d rotation) {
+        m_translation = new Translation2d(x, y);
+        m_rotation = rotation;
+    }
+
     /** Constructs the identity transform -- maps an initial pose to itself. */
     public Transform2d() {
         m_translation = new Translation2d();
@@ -41,13 +59,34 @@ public class Transform2d {
     }
 
     /**
-     * Scales the transform by the scalar.
+     * Multiplies the transform by the scalar.
      *
      * @param scalar The scalar.
      * @return The scaled Transform2d.
      */
     public Transform2d times(double scalar) {
         return new Transform2d(m_translation.times(scalar), m_rotation.times(scalar));
+    }
+
+    /**
+     * Divides the transform by the scalar.
+     *
+     * @param scalar The scalar.
+     * @return The scaled Transform2d.
+     */
+    public Transform2d div(double scalar) {
+        return times(1.0 / scalar);
+    }
+
+    /**
+     * Composes two transformations. The second transform is applied relative to the orientation of
+     * the first.
+     *
+     * @param other The transform to compose with this one.
+     * @return The composition of the two transformations.
+     */
+    public Transform2d plus(Transform2d other) {
+        return new Transform2d(new Pose2d(), new Pose2d().transformBy(this).transformBy(other));
     }
 
     /**
@@ -60,12 +99,44 @@ public class Transform2d {
     }
 
     /**
+     * Returns the X component of the transformation's translation.
+     *
+     * @return The x component of the transformation's translation.
+     */
+    public double getX() {
+        return m_translation.getX();
+    }
+
+    /**
+     * Returns the Y component of the transformation's translation.
+     *
+     * @return The y component of the transformation's translation.
+     */
+    public double getY() {
+        return m_translation.getY();
+    }
+
+    /**
      * Returns the rotational component of the transformation.
      *
      * @return Reference to the rotational component of the transform.
      */
     public Rotation2d getRotation() {
         return m_rotation;
+    }
+
+    /**
+     * Invert the transformation. This is useful for undoing a transformation.
+     *
+     * @return The inverted transformation.
+     */
+    public Transform2d inverse() {
+        // We are rotating the difference between the translations
+        // using a clockwise rotation matrix. This transforms the global
+        // delta into a local delta (relative to the initial pose).
+        return new Transform2d(
+                getTranslation().unaryMinus().rotateBy(getRotation().unaryMinus()),
+                getRotation().unaryMinus());
     }
 
     @Override
@@ -88,17 +159,8 @@ public class Transform2d {
         return false;
     }
 
-    /**
-     * Invert the transformation. This is useful for undoing a transformation.
-     *
-     * @return The inverted transformation.
-     */
-    public Transform2d inverse() {
-        // We are rotating the difference between the translations
-        // using a clockwise rotation matrix. This transforms the global
-        // delta into a local delta (relative to the initial pose).
-        return new Transform2d(
-                getTranslation().unaryMinus().rotateBy(getRotation().unaryMinus()),
-                getRotation().unaryMinus());
+    @Override
+    public int hashCode() {
+        return Objects.hash(m_translation, m_rotation);
     }
 }

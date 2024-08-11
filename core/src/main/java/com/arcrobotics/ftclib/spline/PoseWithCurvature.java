@@ -1,21 +1,17 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.spline;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 
 /** Represents a pair of a pose and a curvature. */
-@SuppressWarnings("MemberName")
 public class PoseWithCurvature {
-    // Represents the pose.
+    /** Represents the pose. */
     public Pose2d poseMeters;
 
-    // Represents the curvature.
+    /** Represents the curvature. */
     public double curvatureRadPerMeter;
 
     /**

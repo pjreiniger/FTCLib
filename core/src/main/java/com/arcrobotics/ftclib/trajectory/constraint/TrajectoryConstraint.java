@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory.constraint;
 
@@ -39,10 +36,12 @@ public interface TrajectoryConstraint {
             Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond);
 
     /** Represents a minimum and maximum acceleration. */
-    @SuppressWarnings("MemberName")
     class MinMax {
+        /** The minimum acceleration. */
         public double minAccelerationMetersPerSecondSq = -Double.MAX_VALUE;
-        public double maxAccelerationMetersPerSecondSq = +Double.MAX_VALUE;
+
+        /** The maximum acceleration. */
+        public double maxAccelerationMetersPerSecondSq = Double.MAX_VALUE;
 
         /**
          * Constructs a MinMax.

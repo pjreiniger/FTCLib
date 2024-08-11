@@ -1,15 +1,10 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.kinematics.wpilibkinematics;
 
-import java.util.stream.DoubleStream;
-
-@SuppressWarnings("MemberName")
+/** Represents the wheel speeds for a mecanum drive drivetrain. */
 public class MecanumDriveWheelSpeeds {
     /** Speed of the front left wheel. */
     public double frontLeftMetersPerSecond;
@@ -46,23 +41,20 @@ public class MecanumDriveWheelSpeeds {
     }
 
     /**
-     * Normalizes the wheel speeds using some max attainable speed. Sometimes, after inverse
-     * kinematics, the requested speed from a/several modules may be above the max attainable speed
-     * for the driving motor on that module. To fix this issue, one can "normalize" all the wheel
-     * speeds to make sure that all requested module speeds are below the absolute threshold, while
-     * maintaining the ratio of speeds between modules.
+     * Renormalizes the wheel speeds if any individual speed is above the specified maximum.
+     *
+     * <p>Sometimes, after inverse kinematics, the requested speed from one or more wheels may be
+     * above the max attainable speed for the driving motor on that wheel. To fix this issue, one can
+     * reduce all the wheel speeds to make sure that all requested module speeds are at-or-below the
+     * absolute threshold, while maintaining the ratio of speeds between wheels.
      *
      * @param attainableMaxSpeedMetersPerSecond The absolute max speed that a wheel can reach.
      */
-    public void normalize(double attainableMaxSpeedMetersPerSecond) {
+    public void desaturate(double attainableMaxSpeedMetersPerSecond) {
         double realMaxSpeed =
-                DoubleStream.of(
-                                frontLeftMetersPerSecond,
-                                frontRightMetersPerSecond,
-                                rearLeftMetersPerSecond,
-                                rearRightMetersPerSecond)
-                        .max()
-                        .getAsDouble();
+                Math.max(Math.abs(frontLeftMetersPerSecond), Math.abs(frontRightMetersPerSecond));
+        realMaxSpeed = Math.max(realMaxSpeed, Math.abs(rearLeftMetersPerSecond));
+        realMaxSpeed = Math.max(realMaxSpeed, Math.abs(rearRightMetersPerSecond));
 
         if (realMaxSpeed > attainableMaxSpeedMetersPerSecond) {
             frontLeftMetersPerSecond =
@@ -76,6 +68,89 @@ public class MecanumDriveWheelSpeeds {
         }
     }
 
+    /**
+     * Adds two MecanumDriveWheelSpeeds and returns the sum.
+     *
+     * <p>For example, MecanumDriveWheelSpeeds{1.0, 0.5, 2.0, 1.5} + MecanumDriveWheelSpeeds{2.0, 1.5,
+     * 0.5, 1.0} = MecanumDriveWheelSpeeds{3.0, 2.0, 2.5, 2.5}
+     *
+     * @param other The MecanumDriveWheelSpeeds to add.
+     * @return The sum of the MecanumDriveWheelSpeeds.
+     */
+    public MecanumDriveWheelSpeeds plus(MecanumDriveWheelSpeeds other) {
+        return new MecanumDriveWheelSpeeds(
+                frontLeftMetersPerSecond + other.frontLeftMetersPerSecond,
+                frontRightMetersPerSecond + other.frontRightMetersPerSecond,
+                rearLeftMetersPerSecond + other.rearLeftMetersPerSecond,
+                rearRightMetersPerSecond + other.rearRightMetersPerSecond);
+    }
+
+    /**
+     * Subtracts the other MecanumDriveWheelSpeeds from the current MecanumDriveWheelSpeeds and
+     * returns the difference.
+     *
+     * <p>For example, MecanumDriveWheelSpeeds{5.0, 4.0, 6.0, 2.5} - MecanumDriveWheelSpeeds{1.0, 2.0,
+     * 3.0, 0.5} = MecanumDriveWheelSpeeds{4.0, 2.0, 3.0, 2.0}
+     *
+     * @param other The MecanumDriveWheelSpeeds to subtract.
+     * @return The difference between the two MecanumDriveWheelSpeeds.
+     */
+    public MecanumDriveWheelSpeeds minus(MecanumDriveWheelSpeeds other) {
+        return new MecanumDriveWheelSpeeds(
+                frontLeftMetersPerSecond - other.frontLeftMetersPerSecond,
+                frontRightMetersPerSecond - other.frontRightMetersPerSecond,
+                rearLeftMetersPerSecond - other.rearLeftMetersPerSecond,
+                rearRightMetersPerSecond - other.rearRightMetersPerSecond);
+    }
+
+    /**
+     * Returns the inverse of the current MecanumDriveWheelSpeeds. This is equivalent to negating all
+     * components of the MecanumDriveWheelSpeeds.
+     *
+     * @return The inverse of the current MecanumDriveWheelSpeeds.
+     */
+    public MecanumDriveWheelSpeeds unaryMinus() {
+        return new MecanumDriveWheelSpeeds(
+                -frontLeftMetersPerSecond,
+                -frontRightMetersPerSecond,
+                -rearLeftMetersPerSecond,
+                -rearRightMetersPerSecond);
+    }
+
+    /**
+     * Multiplies the MecanumDriveWheelSpeeds by a scalar and returns the new MecanumDriveWheelSpeeds.
+     *
+     * <p>For example, MecanumDriveWheelSpeeds{2.0, 2.5, 3.0, 3.5} * 2 = MecanumDriveWheelSpeeds{4.0,
+     * 5.0, 6.0, 7.0}
+     *
+     * @param scalar The scalar to multiply by.
+     * @return The scaled MecanumDriveWheelSpeeds.
+     */
+    public MecanumDriveWheelSpeeds times(double scalar) {
+        return new MecanumDriveWheelSpeeds(
+                frontLeftMetersPerSecond * scalar,
+                frontRightMetersPerSecond * scalar,
+                rearLeftMetersPerSecond * scalar,
+                rearRightMetersPerSecond * scalar);
+    }
+
+    /**
+     * Divides the MecanumDriveWheelSpeeds by a scalar and returns the new MecanumDriveWheelSpeeds.
+     *
+     * <p>For example, MecanumDriveWheelSpeeds{2.0, 2.5, 1.5, 1.0} / 2 = MecanumDriveWheelSpeeds{1.0,
+     * 1.25, 0.75, 0.5}
+     *
+     * @param scalar The scalar to divide by.
+     * @return The scaled MecanumDriveWheelSpeeds.
+     */
+    public MecanumDriveWheelSpeeds div(double scalar) {
+        return new MecanumDriveWheelSpeeds(
+                frontLeftMetersPerSecond / scalar,
+                frontRightMetersPerSecond / scalar,
+                rearLeftMetersPerSecond / scalar,
+                rearRightMetersPerSecond / scalar);
+    }
+
     @Override
     public String toString() {
         return String.format(
@@ -85,5 +160,10 @@ public class MecanumDriveWheelSpeeds {
                 frontRightMetersPerSecond,
                 rearLeftMetersPerSecond,
                 rearRightMetersPerSecond);
+    }
+
+    @Deprecated
+    public void normalize(double attainableMaxSpeedMetersPerSecond) {
+        desaturate(attainableMaxSpeedMetersPerSecond);
     }
 }

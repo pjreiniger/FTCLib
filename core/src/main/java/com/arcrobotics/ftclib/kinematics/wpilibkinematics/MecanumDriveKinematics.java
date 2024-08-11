@@ -1,13 +1,11 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.kinematics.wpilibkinematics;
 
 import com.arcrobotics.ftclib.geometry.Translation2d;
+import com.arcrobotics.ftclib.geometry.Twist2d;
 import org.ejml.simple.SimpleMatrix;
 
 /**
@@ -16,8 +14,8 @@ import org.ejml.simple.SimpleMatrix;
  *
  * <p>The inverse kinematics (converting from a desired chassis velocity to individual wheel speeds)
  * uses the relative locations of the wheels with respect to the center of rotation. The center of
- * rotation for inverse kinematics is also variable. This means that you can set your set your
- * center of rotation in a corner of the robot to perform special evasion manuevers.
+ * rotation for inverse kinematics is also variable. This means that you can set your center of
+ * rotation in a corner of the robot to perform special evasion maneuvers.
  *
  * <p>Forward kinematics (converting an array of wheel speeds into the overall chassis motion) is
  * performs the exact opposite of what inverse kinematics does. Since this is an overdetermined
@@ -30,8 +28,9 @@ import org.ejml.simple.SimpleMatrix;
  * <p>Forward kinematics is also used for odometry -- determining the position of the robot on the
  * field using encoders and a gyro.
  */
-public class MecanumDriveKinematics {
-    private SimpleMatrix m_inverseKinematics;
+public class MecanumDriveKinematics
+        implements Kinematics<MecanumDriveWheelSpeeds, MecanumDriveWheelPositions> {
+    private final SimpleMatrix m_inverseKinematics;
     private final SimpleMatrix m_forwardKinematics;
 
     private final Translation2d m_frontLeftWheelMeters;
@@ -77,7 +76,7 @@ public class MecanumDriveKinematics {
      * <p>This function also supports variable centers of rotation. During normal operations, the
      * center of rotation is usually the same as the physical center of the robot; therefore, the
      * argument is defaulted to that use case. However, if you wish to change the center of rotation
-     * for evasive manuevers, vision alignment, or for any other use case, you can do so.
+     * for evasive maneuvers, vision alignment, or for any other use case, you can do so.
      *
      * @param chassisSpeeds The desired chassis speed.
      * @param centerOfRotationMeters The center of rotation. For example, if you set the center of
@@ -85,7 +84,7 @@ public class MecanumDriveKinematics {
      *     component, the robot will rotate around that corner.
      * @return The wheel speeds. Use caution because they are not normalized. Sometimes, a user input
      *     may cause one of the wheel speeds to go above the attainable max velocity. Use the {@link
-     *     MecanumDriveWheelSpeeds#normalize(double)} function to rectify this issue.
+     *     MecanumDriveWheelSpeeds#desaturate(double)} function to rectify this issue.
      */
     public MecanumDriveWheelSpeeds toWheelSpeeds(
             ChassisSpeeds chassisSpeeds, Translation2d centerOfRotationMeters) {
@@ -108,12 +107,12 @@ public class MecanumDriveKinematics {
                 chassisSpeeds.vyMetersPerSecond,
                 chassisSpeeds.omegaRadiansPerSecond);
 
-        SimpleMatrix wheelsMatrix = m_inverseKinematics.mult(chassisSpeedsVector);
+        SimpleMatrix wheelsVector = m_inverseKinematics.mult(chassisSpeedsVector);
         return new MecanumDriveWheelSpeeds(
-                wheelsMatrix.get(0, 0),
-                wheelsMatrix.get(1, 0),
-                wheelsMatrix.get(2, 0),
-                wheelsMatrix.get(3, 0));
+                wheelsVector.get(0, 0),
+                wheelsVector.get(1, 0),
+                wheelsVector.get(2, 0),
+                wheelsVector.get(3, 0));
     }
 
     /**
@@ -123,6 +122,7 @@ public class MecanumDriveKinematics {
      * @param chassisSpeeds The desired chassis speed.
      * @return The wheel speeds.
      */
+    @Override
     public MecanumDriveWheelSpeeds toWheelSpeeds(ChassisSpeeds chassisSpeeds) {
         return toWheelSpeeds(chassisSpeeds, new Translation2d());
     }
@@ -135,21 +135,57 @@ public class MecanumDriveKinematics {
      * @param wheelSpeeds The current mecanum drive wheel speeds.
      * @return The resulting chassis speed.
      */
+    @Override
     public ChassisSpeeds toChassisSpeeds(MecanumDriveWheelSpeeds wheelSpeeds) {
-        SimpleMatrix wheelSpeedsMatrix = new SimpleMatrix(4, 1);
-        wheelSpeedsMatrix.setColumn(
+        SimpleMatrix wheelSpeedsVector = new SimpleMatrix(4, 1);
+        wheelSpeedsVector.setColumn(
                 0,
                 0,
                 wheelSpeeds.frontLeftMetersPerSecond,
                 wheelSpeeds.frontRightMetersPerSecond,
                 wheelSpeeds.rearLeftMetersPerSecond,
                 wheelSpeeds.rearRightMetersPerSecond);
-        SimpleMatrix chassisSpeedsVector = m_forwardKinematics.mult(wheelSpeedsMatrix);
+        SimpleMatrix chassisSpeedsVector = m_forwardKinematics.mult(wheelSpeedsVector);
 
         return new ChassisSpeeds(
                 chassisSpeedsVector.get(0, 0),
                 chassisSpeedsVector.get(1, 0),
                 chassisSpeedsVector.get(2, 0));
+    }
+
+    @Override
+    public Twist2d toTwist2d(MecanumDriveWheelPositions start, MecanumDriveWheelPositions end) {
+        SimpleMatrix wheelDeltasVector = new SimpleMatrix(4, 1);
+        wheelDeltasVector.setColumn(
+                0,
+                0,
+                end.frontLeftMeters - start.frontLeftMeters,
+                end.frontRightMeters - start.frontRightMeters,
+                end.rearLeftMeters - start.rearLeftMeters,
+                end.rearRightMeters - start.rearRightMeters);
+        SimpleMatrix twist = m_forwardKinematics.mult(wheelDeltasVector);
+        return new Twist2d(twist.get(0, 0), twist.get(1, 0), twist.get(2, 0));
+    }
+
+    /**
+     * Performs forward kinematics to return the resulting Twist2d from the given wheel deltas. This
+     * method is often used for odometry -- determining the robot's position on the field using
+     * changes in the distance driven by each wheel on the robot.
+     *
+     * @param wheelDeltas The distances driven by each wheel.
+     * @return The resulting Twist2d.
+     */
+    public Twist2d toTwist2d(MecanumDriveWheelPositions wheelDeltas) {
+        SimpleMatrix wheelDeltasVector = new SimpleMatrix(4, 1);
+        wheelDeltasVector.setColumn(
+                0,
+                0,
+                wheelDeltas.frontLeftMeters,
+                wheelDeltas.frontRightMeters,
+                wheelDeltas.rearLeftMeters,
+                wheelDeltas.rearRightMeters);
+        SimpleMatrix twist = m_forwardKinematics.mult(wheelDeltasVector);
+        return new Twist2d(twist.get(0, 0), twist.get(1, 0), twist.get(2, 0));
     }
 
     /**
@@ -166,6 +202,41 @@ public class MecanumDriveKinematics {
         m_inverseKinematics.setRow(1, 0, 1, 1, fr.getX() - fr.getY());
         m_inverseKinematics.setRow(2, 0, 1, 1, rl.getX() - rl.getY());
         m_inverseKinematics.setRow(3, 0, 1, -1, -(rr.getX() + rr.getY()));
-        m_inverseKinematics = m_inverseKinematics.scale(1.0 / Math.sqrt(2));
+    }
+
+    /**
+     * Returns the front-left wheel translation.
+     *
+     * @return The front-left wheel translation.
+     */
+    public Translation2d getFrontLeft() {
+        return m_frontLeftWheelMeters;
+    }
+
+    /**
+     * Returns the front-right wheel translation.
+     *
+     * @return The front-right wheel translation.
+     */
+    public Translation2d getFrontRight() {
+        return m_frontRightWheelMeters;
+    }
+
+    /**
+     * Returns the rear-left wheel translation.
+     *
+     * @return The rear-left wheel translation.
+     */
+    public Translation2d getRearLeft() {
+        return m_rearLeftWheelMeters;
+    }
+
+    /**
+     * Returns the rear-right wheel translation.
+     *
+     * @return The rear-right wheel translation.
+     */
+    public Translation2d getRearRight() {
+        return m_rearRightWheelMeters;
     }
 }

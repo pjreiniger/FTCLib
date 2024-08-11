@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.controller.wpilibcontroller;
 
@@ -38,30 +35,40 @@ import com.arcrobotics.ftclib.trajectory.Trajectory;
  * derivation and analysis.
  */
 public class RamseteController {
-    @SuppressWarnings("MemberName")
     private final double m_b;
 
-    @SuppressWarnings("MemberName")
     private final double m_zeta;
 
     private Pose2d m_poseError = new Pose2d();
     private Pose2d m_poseTolerance = new Pose2d();
+    private boolean m_enabled = true;
 
     /**
      * Construct a Ramsete unicycle controller.
      *
-     * @param b Tuning parameter (b &gt; 0) for which larger values make convergence more aggressive
-     *     like a proportional term.
-     * @param zeta Tuning parameter (0 &lt; zeta &lt; 1) for which larger values provide more damping
-     *     in response.
+     * @param b Tuning parameter (b &gt; 0 rad²/m²) for which larger values make convergence more
+     *     aggressive like a proportional term.
+     * @param zeta Tuning parameter (0 rad⁻¹ &lt; zeta &lt; 1 rad⁻¹) for which larger values provide
+     *     more damping in response.
      */
-    @SuppressWarnings("ParameterName")
     public RamseteController(double b, double zeta) {
         m_b = b;
         m_zeta = zeta;
     }
 
-    /** Returns true if the pose error is within tolerance of the reference. */
+    /**
+     * Construct a Ramsete unicycle controller. The default arguments for b and zeta of 2.0 rad²/m²
+     * and 0.7 rad⁻¹ have been well-tested to produce desirable results.
+     */
+    public RamseteController() {
+        this(2.0, 0.7);
+    }
+
+    /**
+     * Returns true if the pose error is within tolerance of the reference.
+     *
+     * @return True if the pose error is within tolerance of the reference.
+     */
     public boolean atReference() {
         final Translation2d eTranslate = m_poseError.getTranslation();
         final Rotation2d eRotate = m_poseError.getRotation();
@@ -89,26 +96,33 @@ public class RamseteController {
      *
      * @param currentPose The current pose.
      * @param poseRef The desired pose.
-     * @param linearVelocityRefMeters The desired linear velocity in meters.
-     * @param angularVelocityRefRadiansPerSecond The desired angular velocity in meters.
+     * @param linearVelocityRefMeters The desired linear velocity in meters per second.
+     * @param angularVelocityRefRadiansPerSecond The desired angular velocity in radians per second.
+     * @return The next controller output.
      */
-    @SuppressWarnings("LocalVariableName")
     public ChassisSpeeds calculate(
             Pose2d currentPose,
             Pose2d poseRef,
             double linearVelocityRefMeters,
             double angularVelocityRefRadiansPerSecond) {
+        if (!m_enabled) {
+            return new ChassisSpeeds(linearVelocityRefMeters, 0.0, angularVelocityRefRadiansPerSecond);
+        }
+
         m_poseError = poseRef.relativeTo(currentPose);
 
         // Aliases for equation readability
-        final double eX = m_poseError.getTranslation().getX();
-        final double eY = m_poseError.getTranslation().getY();
+        final double eX = m_poseError.getX();
+        final double eY = m_poseError.getY();
         final double eTheta = m_poseError.getRotation().getRadians();
         final double vRef = linearVelocityRefMeters;
         final double omegaRef = angularVelocityRefRadiansPerSecond;
 
+        // k = 2ζ√(ω_ref² + b v_ref²)
         double k = 2.0 * m_zeta * Math.sqrt(Math.pow(omegaRef, 2) + m_b * Math.pow(vRef, 2));
 
+        // v_cmd = v_ref cos(e_θ) + k e_x
+        // ω_cmd = ω_ref + k e_θ + b v_ref sinc(e_θ) e_y
         return new ChassisSpeeds(
                 vRef * m_poseError.getRotation().getCos() + k * eX,
                 0.0,
@@ -123,8 +137,8 @@ public class RamseteController {
      *
      * @param currentPose The current pose.
      * @param desiredState The desired pose, linear velocity, and angular velocity from a trajectory.
+     * @return The next controller output.
      */
-    @SuppressWarnings("LocalVariableName")
     public ChassisSpeeds calculate(Pose2d currentPose, Trajectory.State desiredState) {
         return calculate(
                 currentPose,
@@ -134,11 +148,19 @@ public class RamseteController {
     }
 
     /**
+     * Enables and disables the controller for troubleshooting purposes.
+     *
+     * @param enabled If the controller is enabled or not.
+     */
+    public void setEnabled(boolean enabled) {
+        m_enabled = enabled;
+    }
+
+    /**
      * Returns sin(x) / x.
      *
      * @param x Value of which to take sinc(x).
      */
-    @SuppressWarnings("ParameterName")
     private static double sinc(double x) {
         if (Math.abs(x) < 1e-9) {
             return 1.0 - 1.0 / 6.0 * x * x;

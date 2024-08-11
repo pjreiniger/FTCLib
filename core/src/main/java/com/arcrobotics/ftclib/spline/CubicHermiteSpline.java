@@ -1,17 +1,18 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.spline;
 
 import org.ejml.simple.SimpleMatrix;
 
+/** Represents a hermite spline of degree 3. */
 public class CubicHermiteSpline extends Spline {
     private static SimpleMatrix hermiteBasis;
     private final SimpleMatrix m_coefficients;
+
+    private final ControlVector m_initialControlVector;
+    private final ControlVector m_finalControlVector;
 
     /**
      * Constructs a cubic hermite spline with the specified control vectors. Each control vector
@@ -22,7 +23,6 @@ public class CubicHermiteSpline extends Spline {
      * @param yInitialControlVector The control vector for the initial point in the y dimension.
      * @param yFinalControlVector The control vector for the final point in the y dimension.
      */
-    @SuppressWarnings("ParameterName")
     public CubicHermiteSpline(
             double[] xInitialControlVector,
             double[] xFinalControlVector,
@@ -64,6 +64,10 @@ public class CubicHermiteSpline extends Spline {
             m_coefficients.set(4, i, m_coefficients.get(2, i) * (2 - i));
             m_coefficients.set(5, i, m_coefficients.get(3, i) * (2 - i));
         }
+
+        // Assign member variables.
+        m_initialControlVector = new ControlVector(xInitialControlVector, yInitialControlVector);
+        m_finalControlVector = new ControlVector(xFinalControlVector, yFinalControlVector);
     }
 
     /**
@@ -72,8 +76,28 @@ public class CubicHermiteSpline extends Spline {
      * @return The coefficients matrix.
      */
     @Override
-    protected SimpleMatrix getCoefficients() {
+    public SimpleMatrix getCoefficients() {
         return m_coefficients;
+    }
+
+    /**
+     * Returns the initial control vector that created this spline.
+     *
+     * @return The initial control vector that created this spline.
+     */
+    @Override
+    public ControlVector getInitialControlVector() {
+        return m_initialControlVector;
+    }
+
+    /**
+     * Returns the final control vector that created this spline.
+     *
+     * @return The final control vector that created this spline.
+     */
+    @Override
+    public ControlVector getFinalControlVector() {
+        return m_finalControlVector;
     }
 
     /**
@@ -83,6 +107,26 @@ public class CubicHermiteSpline extends Spline {
      */
     private SimpleMatrix makeHermiteBasis() {
         if (hermiteBasis == null) {
+            // Given P(i), P'(i), P(i+1), P'(i+1), the control vectors, we want to find
+            // the coefficients of the spline P(t) = a₃t³ + a₂t² + a₁t + a₀.
+            //
+            // P(i)    = P(0)  = a₀
+            // P'(i)   = P'(0) = a₁
+            // P(i+1)  = P(1)  = a₃ + a₂ + a₁ + a₀
+            // P'(i+1) = P'(1) = 3a₃ + 2a₂ + a₁
+            //
+            // [P(i)   ] = [0 0 0 1][a₃]
+            // [P'(i)  ] = [0 0 1 0][a₂]
+            // [P(i+1) ] = [1 1 1 1][a₁]
+            // [P'(i+1)] = [3 2 1 0][a₀]
+            //
+            // To solve for the coefficients, we can invert the 4x4 matrix and move it
+            // to the other side of the equation.
+            //
+            // [a₃] = [ 2  1 -2  1][P(i)   ]
+            // [a₂] = [-3 -2  3 -1][P'(i)  ]
+            // [a₁] = [ 0  1  0  0][P(i+1) ]
+            // [a₀] = [ 1  0  0  0][P'(i+1)]
             hermiteBasis =
                     new SimpleMatrix(
                             4,
@@ -105,8 +149,8 @@ public class CubicHermiteSpline extends Spline {
      * @return The control vector matrix for a dimension.
      */
     private SimpleMatrix getControlVectorFromArrays(double[] initialVector, double[] finalVector) {
-        if (initialVector.length != 2 || finalVector.length != 2) {
-            throw new IllegalArgumentException("Size of vectors must be 2");
+        if (initialVector.length < 2 || finalVector.length < 2) {
+            throw new IllegalArgumentException("Size of vectors must be 2 or greater.");
         }
         return new SimpleMatrix(
                 4,

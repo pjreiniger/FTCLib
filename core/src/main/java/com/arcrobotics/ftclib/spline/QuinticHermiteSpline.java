@@ -1,17 +1,18 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.spline;
 
 import org.ejml.simple.SimpleMatrix;
 
+/** Represents a hermite spline of degree 5. */
 public class QuinticHermiteSpline extends Spline {
     private static SimpleMatrix hermiteBasis;
     private final SimpleMatrix m_coefficients;
+
+    private final ControlVector m_initialControlVector;
+    private final ControlVector m_finalControlVector;
 
     /**
      * Constructs a quintic hermite spline with the specified control vectors. Each control vector
@@ -22,7 +23,6 @@ public class QuinticHermiteSpline extends Spline {
      * @param yInitialControlVector The control vector for the initial point in the y dimension.
      * @param yFinalControlVector The control vector for the final point in the y dimension.
      */
-    @SuppressWarnings("ParameterName")
     public QuinticHermiteSpline(
             double[] xInitialControlVector,
             double[] xFinalControlVector,
@@ -64,6 +64,10 @@ public class QuinticHermiteSpline extends Spline {
             m_coefficients.set(4, i, m_coefficients.get(2, i) * (4 - i));
             m_coefficients.set(5, i, m_coefficients.get(3, i) * (4 - i));
         }
+
+        // Assign member variables.
+        m_initialControlVector = new ControlVector(xInitialControlVector, yInitialControlVector);
+        m_finalControlVector = new ControlVector(xFinalControlVector, yFinalControlVector);
     }
 
     /**
@@ -72,8 +76,28 @@ public class QuinticHermiteSpline extends Spline {
      * @return The coefficients matrix.
      */
     @Override
-    protected SimpleMatrix getCoefficients() {
+    public SimpleMatrix getCoefficients() {
         return m_coefficients;
+    }
+
+    /**
+     * Returns the initial control vector that created this spline.
+     *
+     * @return The initial control vector that created this spline.
+     */
+    @Override
+    public ControlVector getInitialControlVector() {
+        return m_initialControlVector;
+    }
+
+    /**
+     * Returns the final control vector that created this spline.
+     *
+     * @return The final control vector that created this spline.
+     */
+    @Override
+    public ControlVector getFinalControlVector() {
+        return m_finalControlVector;
     }
 
     /**
@@ -83,13 +107,40 @@ public class QuinticHermiteSpline extends Spline {
      */
     private SimpleMatrix makeHermiteBasis() {
         if (hermiteBasis == null) {
+            // Given P(i), P'(i), P"(i), P(i+1), P'(i+1), P"(i+1), the control vectors,
+            // we want to find the coefficients of the spline
+            // P(t) = a₅t⁵ + a₄t⁴ + a₃t³ + a₂t² + a₁t + a₀.
+            //
+            // P(i)    = P(0)  = a₀
+            // P'(i)   = P'(0) = a₁
+            // P''(i)  = P"(0) = 2a₂
+            // P(i+1)  = P(1)  = a₅ + a₄ + a₃ + a₂ + a₁ + a₀
+            // P'(i+1) = P'(1) = 5a₅ + 4a₄ + 3a₃ + 2a₂ + a₁
+            // P"(i+1) = P"(1) = 20a₅ + 12a₄ + 6a₃ + 2a₂
+            //
+            // [P(i)   ] = [ 0  0  0  0  0  1][a₅]
+            // [P'(i)  ] = [ 0  0  0  0  1  0][a₄]
+            // [P"(i)  ] = [ 0  0  0  2  0  0][a₃]
+            // [P(i+1) ] = [ 1  1  1  1  1  1][a₂]
+            // [P'(i+1)] = [ 5  4  3  2  1  0][a₁]
+            // [P"(i+1)] = [20 12  6  2  0  0][a₀]
+            //
+            // To solve for the coefficients, we can invert the 6x6 matrix and move it
+            // to the other side of the equation.
+            //
+            // [a₅] = [ -6.0  -3.0  -0.5   6.0  -3.0   0.5][P(i)   ]
+            // [a₄] = [ 15.0   8.0   1.5 -15.0   7.0  -1.0][P'(i)  ]
+            // [a₃] = [-10.0  -6.0  -1.5  10.0  -4.0   0.5][P"(i)  ]
+            // [a₂] = [  0.0   0.0   0.5   0.0   0.0   0.0][P(i+1) ]
+            // [a₁] = [  0.0   1.0   0.0   0.0   0.0   0.0][P'(i+1)]
+            // [a₀] = [  1.0   0.0   0.0   0.0   0.0   0.0][P"(i+1)]
             hermiteBasis =
                     new SimpleMatrix(
                             6,
                             6,
                             true,
                             new double[] {
-                                -06.0, -03.0, -00.5, +06.0, -03.0, +00.5, +15.0, +08.0, +01.5, -15.0, +07.0, +01.0,
+                                -06.0, -03.0, -00.5, +06.0, -03.0, +00.5, +15.0, +08.0, +01.5, -15.0, +07.0, -01.0,
                                 -10.0, -06.0, -01.5, +10.0, -04.0, +00.5, +00.0, +00.0, +00.5, +00.0, +00.0, +00.0,
                                 +00.0, +01.0, +00.0, +00.0, +00.0, +00.0, +01.0, +00.0, +00.0, +00.0, +00.0, +00.0
                             });

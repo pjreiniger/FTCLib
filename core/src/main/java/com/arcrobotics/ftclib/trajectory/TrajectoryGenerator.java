@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019-2020 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory;
 
@@ -17,12 +14,14 @@ import com.arcrobotics.ftclib.spline.PoseWithCurvature;
 import com.arcrobotics.ftclib.spline.Spline;
 import com.arcrobotics.ftclib.spline.SplineHelper;
 import com.arcrobotics.ftclib.spline.SplineParameterizer;
+import com.arcrobotics.ftclib.spline.SplineParameterizer.MalformedSplineException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/** Helper class used to generate trajectories with various constraints. */
 public final class TrajectoryGenerator {
     private static final Trajectory kDoNothingTrajectory =
             new Trajectory(Arrays.asList(new Trajectory.State()));
@@ -36,7 +35,7 @@ public final class TrajectoryGenerator {
         if (errorFunc != null) {
             errorFunc.accept(error, stackTrace);
         } else {
-            // DriverStation.reportError(error, stackTrace);
+            // MathSharedStore.reportError(error, stackTrace);
         }
     }
 
@@ -88,7 +87,7 @@ public final class TrajectoryGenerator {
                     splinePointsFromSplines(
                             SplineHelper.getCubicSplinesFromControlVectors(
                                     newInitial, interiorWaypoints.toArray(new Translation2d[0]), newEnd));
-        } catch (SplineParameterizer.MalformedSplineException ex) {
+        } catch (MalformedSplineException ex) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 reportError(ex.getMessage(), ex.getStackTrace());
             }
@@ -147,7 +146,6 @@ public final class TrajectoryGenerator {
      * @return The generated trajectory.
      */
     @RequiresApi(api = Build.VERSION_CODES.N)
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public static Trajectory generateTrajectory(
             ControlVectorList controlVectors, TrajectoryConfig config) {
         final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
@@ -171,7 +169,7 @@ public final class TrajectoryGenerator {
                     splinePointsFromSplines(
                             SplineHelper.getQuinticSplinesFromControlVectors(
                                     newControlVectors.toArray(new Spline.ControlVector[] {})));
-        } catch (SplineParameterizer.MalformedSplineException ex) {
+        } catch (MalformedSplineException ex) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 reportError(ex.getMessage(), ex.getStackTrace());
             }
@@ -207,12 +205,47 @@ public final class TrajectoryGenerator {
      * @return The generated trajectory.
      */
     @RequiresApi(api = Build.VERSION_CODES.N)
-    @SuppressWarnings("LocalVariableName")
     public static Trajectory generateTrajectory(List<Pose2d> waypoints, TrajectoryConfig config) {
-        List<Spline.ControlVector> originalList =
-                SplineHelper.getQuinticControlVectorsFromWaypoints(waypoints);
-        ControlVectorList newList = new ControlVectorList(originalList);
-        return generateTrajectory(newList, config);
+        final Transform2d flip = new Transform2d(new Translation2d(), Rotation2d.fromDegrees(180.0));
+
+        List<Pose2d> newWaypoints = new ArrayList<>();
+        if (config.isReversed()) {
+            for (Pose2d originalWaypoint : waypoints) {
+                newWaypoints.add(originalWaypoint.plus(flip));
+            }
+        } else {
+            newWaypoints.addAll(waypoints);
+        }
+
+        // Get the spline points
+        List<PoseWithCurvature> points;
+        try {
+            points =
+                    splinePointsFromSplines(
+                            SplineHelper.optimizeCurvature(
+                                    SplineHelper.getQuinticSplinesFromWaypoints(newWaypoints)));
+        } catch (MalformedSplineException ex) {
+            reportError(ex.getMessage(), ex.getStackTrace());
+            return kDoNothingTrajectory;
+        }
+
+        // Change the points back to their original orientation.
+        if (config.isReversed()) {
+            for (PoseWithCurvature point : points) {
+                point.poseMeters = point.poseMeters.plus(flip);
+                point.curvatureRadPerMeter *= -1;
+            }
+        }
+
+        // Generate and return trajectory.
+        return TrajectoryParameterizer.timeParameterizeTrajectory(
+                points,
+                config.getConstraints(),
+                config.getStartVelocity(),
+                config.getEndVelocity(),
+                config.getMaxVelocity(),
+                config.getMaxAcceleration(),
+                config.isReversed());
     }
 
     /**
@@ -220,8 +253,8 @@ public final class TrajectoryGenerator {
      *
      * @param splines The splines to parameterize.
      * @return The spline points for use in time parameterization of a trajectory.
-     * @throws SplineParameterizer.MalformedSplineException When the spline is malformed (e.g. has
-     *     close adjacent points with approximately opposing headings)
+     * @throws MalformedSplineException When the spline is malformed (e.g. has close adjacent points
+     *     with approximately opposing headings)
      */
     public static List<PoseWithCurvature> splinePointsFromSplines(Spline[] splines) {
         // Create the vector of spline points.
@@ -243,16 +276,27 @@ public final class TrajectoryGenerator {
         return splinePoints;
     }
 
-    // Work around type erasure signatures
+    /** Control vector list type that works around type erasure signatures. */
     public static class ControlVectorList extends ArrayList<Spline.ControlVector> {
-        public ControlVectorList(int initialCapacity) {
-            super(initialCapacity);
-        }
-
+        /** Default constructor. */
         public ControlVectorList() {
             super();
         }
 
+        /**
+         * Constructs a ControlVectorList.
+         *
+         * @param initialCapacity The initial list capacity.
+         */
+        public ControlVectorList(int initialCapacity) {
+            super(initialCapacity);
+        }
+
+        /**
+         * Constructs a ControlVectorList.
+         *
+         * @param collection A collection of spline control vectors.
+         */
         public ControlVectorList(Collection<? extends Spline.ControlVector> collection) {
             super(collection);
         }

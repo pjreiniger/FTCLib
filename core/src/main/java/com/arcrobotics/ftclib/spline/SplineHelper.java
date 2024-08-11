@@ -1,18 +1,16 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.spline;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.ejml.simple.SimpleMatrix;
 
+/** Helper class that is used to generate cubic and quintic splines from user provided waypoints. */
 public final class SplineHelper {
     /** Private constructor because this is a utility class. */
     private SplineHelper() {}
@@ -47,25 +45,27 @@ public final class SplineHelper {
     }
 
     /**
-     * Returns quintic control vectors from a set of waypoints.
+     * Returns quintic splines from a set of waypoints.
      *
      * @param waypoints The waypoints
-     * @return List of control vectors
+     * @return array of splines.
      */
-    public static List<Spline.ControlVector> getQuinticControlVectorsFromWaypoints(
-            List<Pose2d> waypoints) {
-        List<Spline.ControlVector> vectors = new ArrayList<>();
-        for (int i = 0; i < waypoints.size() - 1; i++) {
+    public static QuinticHermiteSpline[] getQuinticSplinesFromWaypoints(List<Pose2d> waypoints) {
+        QuinticHermiteSpline[] splines = new QuinticHermiteSpline[waypoints.size() - 1];
+        for (int i = 0; i < waypoints.size() - 1; ++i) {
             Pose2d p0 = waypoints.get(i);
             Pose2d p1 = waypoints.get(i + 1);
 
             // This just makes the splines look better.
             final double scalar = 1.2 * p0.getTranslation().getDistance(p1.getTranslation());
 
-            vectors.add(getQuinticControlVector(scalar, p0));
-            vectors.add(getQuinticControlVector(scalar, p1));
+            Spline.ControlVector controlVecA = getQuinticControlVector(scalar, p0);
+            Spline.ControlVector controlVecB = getQuinticControlVector(scalar, p1);
+
+            splines[i] =
+                    new QuinticHermiteSpline(controlVecA.x, controlVecB.x, controlVecA.y, controlVecB.y);
         }
-        return vectors;
+        return splines;
     }
 
     /**
@@ -80,11 +80,6 @@ public final class SplineHelper {
      * @return A vector of cubic hermite splines that interpolate through the provided waypoints and
      *     control vectors.
      */
-    @SuppressWarnings({
-        "LocalVariableName",
-        "PMD.ExcessiveMethodLength",
-        "PMD.AvoidInstantiatingObjectsInLoops"
-    })
     public static CubicHermiteSpline[] getCubicSplinesFromControlVectors(
             Spline.ControlVector start, Translation2d[] waypoints, Spline.ControlVector end) {
         CubicHermiteSpline[] splines = new CubicHermiteSpline[waypoints.length + 1];
@@ -139,8 +134,11 @@ public final class SplineHelper {
 
             if (newWaypts.length > 4) {
                 for (int i = 1; i <= newWaypts.length - 4; i++) {
-                    dx[i] = 3 * (newWaypts[i + 1].getX() - newWaypts[i - 1].getX());
-                    dy[i] = 3 * (newWaypts[i + 1].getY() - newWaypts[i - 1].getY());
+                    // dx and dy represent the derivatives of the internal waypoints. The derivative
+                    // of the second internal waypoint should involve the third and first internal waypoint,
+                    // which have indices of 1 and 3 in the newWaypts list (which contains ALL waypoints).
+                    dx[i] = 3 * (newWaypts[i + 2].getX() - newWaypts[i].getX());
+                    dy[i] = 3 * (newWaypts[i + 2].getY() - newWaypts[i].getY());
                 }
             }
 
@@ -180,10 +178,19 @@ public final class SplineHelper {
             double[] midXControlVector = {waypoints[0].getX(), xDeriv};
             double[] midYControlVector = {waypoints[0].getY(), yDeriv};
 
-            splines[0] = new CubicHermiteSpline(xInitial, midXControlVector, yInitial, midYControlVector);
-            splines[1] = new CubicHermiteSpline(midXControlVector, xFinal, midYControlVector, yFinal);
+            splines[0] =
+                    new CubicHermiteSpline(
+                            xInitial, midXControlVector,
+                            yInitial, midYControlVector);
+            splines[1] =
+                    new CubicHermiteSpline(
+                            midXControlVector, xFinal,
+                            midYControlVector, yFinal);
         } else {
-            splines[0] = new CubicHermiteSpline(xInitial, xFinal, yInitial, yFinal);
+            splines[0] =
+                    new CubicHermiteSpline(
+                            xInitial, xFinal,
+                            yInitial, yFinal);
         }
         return splines;
     }
@@ -196,7 +203,6 @@ public final class SplineHelper {
      * @param controlVectors The control vectors.
      * @return A vector of quintic hermite splines that interpolate through the provided waypoints.
      */
-    @SuppressWarnings({"LocalVariableName", "PMD.AvoidInstantiatingObjectsInLoops"})
     public static QuinticHermiteSpline[] getQuinticSplinesFromControlVectors(
             Spline.ControlVector[] controlVectors) {
         QuinticHermiteSpline[] splines = new QuinticHermiteSpline[controlVectors.length - 1];
@@ -205,9 +211,85 @@ public final class SplineHelper {
             double[] xFinal = controlVectors[i + 1].x;
             double[] yInitial = controlVectors[i].y;
             double[] yFinal = controlVectors[i + 1].y;
-            splines[i] = new QuinticHermiteSpline(xInitial, xFinal, yInitial, yFinal);
+            splines[i] =
+                    new QuinticHermiteSpline(
+                            xInitial, xFinal,
+                            yInitial, yFinal);
         }
         return splines;
+    }
+
+    /**
+     * Optimizes the curvature of 2 or more quintic splines at knot points. Overall, this reduces the
+     * integral of the absolute value of the second derivative across the set of splines.
+     *
+     * @param splines An array of un-optimized quintic splines.
+     * @return An array of optimized quintic splines.
+     */
+    @SuppressWarnings({"LocalVariableName", "PMD.AvoidInstantiatingObjectsInLoops"})
+    public static QuinticHermiteSpline[] optimizeCurvature(QuinticHermiteSpline[] splines) {
+        // If there's only spline in the array, we can't optimize anything so just return that.
+        if (splines.length < 2) {
+            return splines;
+        }
+
+        // Implements Section 4.1.2 of
+        // http://www2.informatik.uni-freiburg.de/~lau/students/Sprunk2008.pdf.
+
+        // Cubic splines minimize the integral of the second derivative's absolute value. Therefore, we
+        // can create cubic splines with the same 0th and 1st derivatives and the provided quintic
+        // splines, find the second derivative of those cubic splines and then use a weighted average
+        // for the second derivatives of the quintic splines.
+
+        QuinticHermiteSpline[] optimizedSplines = new QuinticHermiteSpline[splines.length];
+        for (int i = 0; i < splines.length - 1; ++i) {
+            QuinticHermiteSpline a = splines[i];
+            QuinticHermiteSpline b = splines[i + 1];
+
+            // Get the control vectors that created the quintic splines above.
+            Spline.ControlVector aInitial = a.getInitialControlVector();
+            Spline.ControlVector aFinal = a.getFinalControlVector();
+            Spline.ControlVector bInitial = b.getInitialControlVector();
+            Spline.ControlVector bFinal = b.getFinalControlVector();
+
+            // Create cubic splines with the same control vectors.
+            CubicHermiteSpline ca = new CubicHermiteSpline(aInitial.x, aFinal.x, aInitial.y, aFinal.y);
+            CubicHermiteSpline cb = new CubicHermiteSpline(bInitial.x, bFinal.x, bInitial.y, bFinal.y);
+
+            // Calculate the second derivatives at the knot points.
+            SimpleMatrix bases = new SimpleMatrix(4, 1, true, new double[] {1, 1, 1, 1});
+            SimpleMatrix combinedA = ca.getCoefficients().mult(bases);
+
+            double ddxA = combinedA.get(4, 0);
+            double ddyA = combinedA.get(5, 0);
+            double ddxB = cb.getCoefficients().get(4, 1);
+            double ddyB = cb.getCoefficients().get(5, 1);
+
+            // Calculate the parameters for the weighted average.
+            double dAB = Math.hypot(aFinal.x[0] - aInitial.x[0], aFinal.y[0] - aInitial.y[0]);
+            double dBC = Math.hypot(bFinal.x[0] - bInitial.x[0], bFinal.y[0] - bInitial.y[0]);
+            double alpha = dBC / (dAB + dBC);
+            double beta = dAB / (dAB + dBC);
+
+            // Calculate the weighted average.
+            double ddx = alpha * ddxA + beta * ddxB;
+            double ddy = alpha * ddyA + beta * ddyB;
+
+            // Create new splines.
+            optimizedSplines[i] =
+                    new QuinticHermiteSpline(
+                            aInitial.x,
+                            new double[] {aFinal.x[0], aFinal.x[1], ddx},
+                            aInitial.y,
+                            new double[] {aFinal.y[0], aFinal.y[1], ddy});
+            optimizedSplines[i + 1] =
+                    new QuinticHermiteSpline(
+                            new double[] {bInitial.x[0], bInitial.x[1], ddx},
+                            bFinal.x,
+                            new double[] {bInitial.y[0], bInitial.y[1], ddy},
+                            bFinal.y);
+        }
+        return optimizedSplines;
     }
 
     /**
@@ -219,7 +301,6 @@ public final class SplineHelper {
      * @param d the vector on the rhs
      * @param solutionVector the unknown (solution) vector, modified in-place
      */
-    @SuppressWarnings({"ParameterName", "LocalVariableName"})
     private static void thomasAlgorithm(
             double[] a, double[] b, double[] c, double[] d, double[] solutionVector) {
         int N = d.length;
@@ -247,13 +328,13 @@ public final class SplineHelper {
 
     private static Spline.ControlVector getCubicControlVector(double scalar, Pose2d point) {
         return new Spline.ControlVector(
-                new double[] {point.getTranslation().getX(), scalar * point.getRotation().getCos()},
-                new double[] {point.getTranslation().getY(), scalar * point.getRotation().getSin()});
+                new double[] {point.getX(), scalar * point.getRotation().getCos()},
+                new double[] {point.getY(), scalar * point.getRotation().getSin()});
     }
 
     private static Spline.ControlVector getQuinticControlVector(double scalar, Pose2d point) {
         return new Spline.ControlVector(
-                new double[] {point.getTranslation().getX(), scalar * point.getRotation().getCos(), 0.0},
-                new double[] {point.getTranslation().getY(), scalar * point.getRotation().getSin(), 0.0});
+                new double[] {point.getX(), scalar * point.getRotation().getCos(), 0.0},
+                new double[] {point.getY(), scalar * point.getRotation().getSin(), 0.0});
     }
 }

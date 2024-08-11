@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory.constraint;
 
@@ -41,12 +38,12 @@ public class CentripetalAccelerationConstraint implements TrajectoryConstraint {
     @Override
     public double getMaxVelocityMetersPerSecond(
             Pose2d poseMeters, double curvatureRadPerMeter, double velocityMetersPerSecond) {
-        // ac = v^2 / r
-        // k (curvature) = 1 / r
+        // ac = v²/r
+        // k (curvature) = 1/r
 
-        // therefore, ac = v^2 * k
-        // ac / k = v^2
-        // v = std::sqrt(ac / k)
+        // therefore, ac = v²k
+        // ac/k = v²
+        // v = √(ac/k)
 
         return Math.sqrt(
                 m_maxCentripetalAccelerationMetersPerSecondSq / Math.abs(curvatureRadPerMeter));

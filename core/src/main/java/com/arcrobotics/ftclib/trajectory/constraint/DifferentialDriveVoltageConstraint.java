@@ -1,11 +1,10 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory.constraint;
+
+import static com.arcrobotics.ftclib.util.ErrorMessages.requireNonNullParam;
 
 import com.arcrobotics.ftclib.controller.wpilibcontroller.SimpleMotorFeedforward;
 import com.arcrobotics.ftclib.geometry.Pose2d;
@@ -37,8 +36,10 @@ public class DifferentialDriveVoltageConstraint implements TrajectoryConstraint 
             SimpleMotorFeedforward feedforward,
             DifferentialDriveKinematics kinematics,
             double maxVoltage) {
-        m_feedforward = feedforward;
-        m_kinematics = kinematics;
+        m_feedforward =
+                requireNonNullParam(feedforward, "feedforward", "DifferentialDriveVoltageConstraint");
+        m_kinematics =
+                requireNonNullParam(kinematics, "kinematics", "DifferentialDriveVoltageConstraint");
         m_maxVoltage = maxVoltage;
     }
 
@@ -79,26 +80,47 @@ public class DifferentialDriveVoltageConstraint implements TrajectoryConstraint 
         // If moving forward, max acceleration constraint corresponds to wheel on outside of turn
         // If moving backward, max acceleration constraint corresponds to wheel on inside of turn
 
-        double maxChassisAcceleration =
-                maxWheelAcceleration
-                        / (1
-                                + m_kinematics.trackWidthMeters
-                                        * Math.abs(curvatureRadPerMeter)
-                                        * Math.signum(velocityMetersPerSecond)
-                                        / 2);
-        double minChassisAcceleration =
-                minWheelAcceleration
-                        / (1
-                                - m_kinematics.trackWidthMeters
-                                        * Math.abs(curvatureRadPerMeter)
-                                        * Math.signum(velocityMetersPerSecond)
-                                        / 2);
+        // When velocity is zero, then wheel velocities are uniformly zero (robot cannot be
+        // turning on its center) - we have to treat this as a special case, as it breaks
+        // the signum function.  Both max and min acceleration are *reduced in magnitude*
+        // in this case.
 
-        // Negate acceleration of wheel on inside of turn if center of turn is inside of wheelbase
+        double maxChassisAcceleration;
+        double minChassisAcceleration;
+
+        if (velocityMetersPerSecond == 0) {
+            maxChassisAcceleration =
+                    maxWheelAcceleration
+                            / (1 + m_kinematics.trackWidthMeters * Math.abs(curvatureRadPerMeter) / 2);
+            minChassisAcceleration =
+                    minWheelAcceleration
+                            / (1 + m_kinematics.trackWidthMeters * Math.abs(curvatureRadPerMeter) / 2);
+        } else {
+            maxChassisAcceleration =
+                    maxWheelAcceleration
+                            / (1
+                                    + m_kinematics.trackWidthMeters
+                                            * Math.abs(curvatureRadPerMeter)
+                                            * Math.signum(velocityMetersPerSecond)
+                                            / 2);
+            minChassisAcceleration =
+                    minWheelAcceleration
+                            / (1
+                                    - m_kinematics.trackWidthMeters
+                                            * Math.abs(curvatureRadPerMeter)
+                                            * Math.signum(velocityMetersPerSecond)
+                                            / 2);
+        }
+
+        // When turning about a point inside the wheelbase (i.e. radius less than half
+        // the trackwidth), the inner wheel's direction changes, but the magnitude remains
+        // the same.  The formula above changes sign for the inner wheel when this happens.
+        // We can accurately account for this by simply negating the inner wheel.
+
         if ((m_kinematics.trackWidthMeters / 2) > (1 / Math.abs(curvatureRadPerMeter))) {
             if (velocityMetersPerSecond > 0) {
                 minChassisAcceleration = -minChassisAcceleration;
-            } else {
+            } else if (velocityMetersPerSecond < 0) {
                 maxChassisAcceleration = -maxChassisAcceleration;
             }
         }

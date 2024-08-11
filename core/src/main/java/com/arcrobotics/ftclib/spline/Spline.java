@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.spline;
 
@@ -30,7 +27,21 @@ public abstract class Spline {
      *
      * @return The coefficients of the spline.
      */
-    protected abstract SimpleMatrix getCoefficients();
+    public abstract SimpleMatrix getCoefficients();
+
+    /**
+     * Returns the initial control vector that created this spline.
+     *
+     * @return The initial control vector that created this spline.
+     */
+    public abstract ControlVector getInitialControlVector();
+
+    /**
+     * Returns the final control vector that created this spline.
+     *
+     * @return The final control vector that created this spline.
+     */
+    public abstract ControlVector getFinalControlVector();
 
     /**
      * Gets the pose and curvature at some point t on the spline.
@@ -38,7 +49,6 @@ public abstract class Spline {
      * @param t The point t
      * @return The pose and curvature at that point.
      */
-    @SuppressWarnings("ParameterName")
     public PoseWithCurvature getPoint(double t) {
         SimpleMatrix polynomialBases = new SimpleMatrix(m_degree + 1, 1);
         final SimpleMatrix coefficients = getCoefficients();
@@ -49,7 +59,7 @@ public abstract class Spline {
         }
 
         // This simply multiplies by the coefficients. We need to divide out t some
-        // n number of times where n is the derivative we want to take.
+        // n number of times when n is the derivative we want to take.
         SimpleMatrix combined = coefficients.mult(polynomialBases);
 
         // Get x and y
@@ -88,9 +98,11 @@ public abstract class Spline {
      * <p>Each element in each array represents the value of the derivative at the index. For example,
      * the value of x[2] is the second derivative in the x dimension.
      */
-    @SuppressWarnings("MemberName")
     public static class ControlVector {
+        /** The x components of the control vector. */
         public double[] x;
+
+        /** The y components of the control vector. */
         public double[] y;
 
         /**
@@ -99,7 +111,6 @@ public abstract class Spline {
          * @param x The x dimension of the control vector.
          * @param y The y dimension of the control vector.
          */
-        @SuppressWarnings("ParameterName")
         public ControlVector(double[] x, double[] y) {
             this.x = Arrays.copyOf(x, x.length);
             this.y = Arrays.copyOf(y, y.length);

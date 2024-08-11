@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 /*
  * MIT License
@@ -57,13 +54,6 @@ public final class TrajectoryParameterizer {
      *     from a -&gt; b -&gt; ... -&gt; z as defined in the waypoints.
      * @return The trajectory.
      */
-    @SuppressWarnings({
-        "PMD.ExcessiveMethodLength",
-        "PMD.CyclomaticComplexity",
-        "PMD.NPathComplexity",
-        "PMD.AvoidInstantiatingObjectsInLoops",
-        "PMD.AvoidThrowingRawExceptionTypes"
-    })
     public static Trajectory timeParameterizeTrajectory(
             List<PoseWithCurvature> points,
             List<TrajectoryConstraint> constraints,
@@ -100,7 +90,7 @@ public final class TrajectoryParameterizer {
             // acceleration, since acceleration limits may be a function of velocity.
             while (true) {
                 // Enforce global max velocity and max reachable velocity by global
-                // acceleration limit. vf = std::sqrt(vi^2 + 2*a*d).
+                // acceleration limit. v_f = √(v_i² + 2ad).
                 constrainedState.maxVelocityMetersPerSecond =
                         Math.min(
                                 maxVelocityMetersPerSecond,
@@ -174,7 +164,7 @@ public final class TrajectoryParameterizer {
 
             while (true) {
                 // Enforce max velocity limit (reverse)
-                // vf = std::sqrt(vi^2 + 2*a*d), where vi = successor.
+                // v_f = √(v_i² + 2ad), where v_i = successor.
                 double newMaxVelocity =
                         Math.sqrt(
                                 successor.maxVelocityMetersPerSecond * successor.maxVelocityMetersPerSecond
@@ -246,7 +236,8 @@ public final class TrajectoryParameterizer {
                     // delta_x = v * t
                     dt = ds / velocityMetersPerSecond;
                 } else {
-                    throw new RuntimeException("Something went wrong");
+                    throw new TrajectoryGenerationException(
+                            "Something went wrong at iteration " + i + " of time parameterization.");
                 }
             }
 
@@ -277,6 +268,12 @@ public final class TrajectoryParameterizer {
                             state.pose.curvatureRadPerMeter,
                             state.maxVelocityMetersPerSecond * factor);
 
+            if (minMaxAccel.minAccelerationMetersPerSecondSq
+                    > minMaxAccel.maxAccelerationMetersPerSecondSq) {
+                throw new TrajectoryGenerationException(
+                        "Infeasible trajectory constraint: " + constraint.getClass().getName() + "\n");
+            }
+
             state.minAccelerationMetersPerSecondSq =
                     Math.max(
                             state.minAccelerationMetersPerSecondSq,
@@ -293,7 +290,6 @@ public final class TrajectoryParameterizer {
         }
     }
 
-    @SuppressWarnings("MemberName")
     private static class ConstrainedState {
         PoseWithCurvature pose;
         double distanceMeters;
@@ -316,6 +312,18 @@ public final class TrajectoryParameterizer {
 
         ConstrainedState() {
             pose = new PoseWithCurvature();
+        }
+    }
+
+    /** Exception for trajectory generation failure. */
+    public static class TrajectoryGenerationException extends RuntimeException {
+        /**
+         * Constructs a TrajectoryGenerationException.
+         *
+         * @param message Exception message.
+         */
+        public TrajectoryGenerationException(String message) {
+            super(message);
         }
     }
 }

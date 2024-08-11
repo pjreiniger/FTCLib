@@ -1,17 +1,18 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.controller.wpilibcontroller;
 
 /** A helper class that computes feedforward outputs for a simple permanent-magnet DC motor. */
-@SuppressWarnings("MemberName")
 public class SimpleMotorFeedforward {
+    /** The static gain. */
     public final double ks;
+
+    /** The velocity gain. */
     public final double kv;
+
+    /** The acceleration gain. */
     public final double ka;
 
     /**
@@ -21,11 +22,19 @@ public class SimpleMotorFeedforward {
      * @param ks The static gain.
      * @param kv The velocity gain.
      * @param ka The acceleration gain.
+     * @throws IllegalArgumentException for kv &lt; zero.
+     * @throws IllegalArgumentException for ka &lt; zero.
      */
     public SimpleMotorFeedforward(double ks, double kv, double ka) {
         this.ks = ks;
         this.kv = kv;
         this.ka = ka;
+        if (kv < 0.0) {
+            throw new IllegalArgumentException("kv must be a non-negative number, got " + kv + "!");
+        }
+        if (ka < 0.0) {
+            throw new IllegalArgumentException("ka must be a non-negative number, got " + ka + "!");
+        }
     }
 
     /**
@@ -109,7 +118,7 @@ public class SimpleMotorFeedforward {
     }
 
     /**
-     * Calculates the maximum achievable acceleration given a maximum voltage supply and a velocity.
+     * Calculates the minimum achievable acceleration given a maximum voltage supply and a velocity.
      * Useful for ensuring that velocity and acceleration constraints for a trapezoidal profile are
      * simultaneously achievable - enter the velocity constraint, and this will give you a
      * simultaneously-achievable acceleration constraint.

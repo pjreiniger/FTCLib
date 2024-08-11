@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019-2020 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 /*
  * MIT License
@@ -50,7 +47,6 @@ public final class SplineParameterizer {
      */
     private static final int kMaxIterations = 5000;
 
-    @SuppressWarnings("MemberName")
     private static class StackContents {
         final double t1;
         final double t0;
@@ -61,6 +57,7 @@ public final class SplineParameterizer {
         }
     }
 
+    /** Exception for malformed splines. */
     public static class MalformedSplineException extends RuntimeException {
         /**
          * Create a new exception with the given message.
@@ -76,8 +73,8 @@ public final class SplineParameterizer {
     private SplineParameterizer() {}
 
     /**
-     * Parameterizes the spline. This method breaks up the spline into various arcs until their dx,
-     * dy, and dtheta are within specific tolerances.
+     * Parametrizes the spline. This method breaks up the spline into various arcs until their dx, dy,
+     * and dtheta are within specific tolerances.
      *
      * @param spline The spline to parameterize.
      * @return A list of poses and curvatures that represents various points on the spline.
@@ -89,8 +86,8 @@ public final class SplineParameterizer {
     }
 
     /**
-     * Parameterizes the spline. This method breaks up the spline into various arcs until their dx,
-     * dy, and dtheta are within specific tolerances.
+     * Parametrizes the spline. This method breaks up the spline into various arcs until their dx, dy,
+     * and dtheta are within specific tolerances.
      *
      * @param spline The spline to parameterize.
      * @param t0 Starting internal spline parameter. It is recommended to use 0.0.
@@ -99,7 +96,6 @@ public final class SplineParameterizer {
      * @throws MalformedSplineException When the spline is malformed (e.g. has close adjacent points
      *     with approximately opposing headings)
      */
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public static List<PoseWithCurvature> parameterize(Spline spline, double t0, double t1) {
         ArrayList<PoseWithCurvature> splinePoints = new ArrayList<PoseWithCurvature>();
 
@@ -134,9 +130,9 @@ public final class SplineParameterizer {
             iterations++;
             if (iterations >= kMaxIterations) {
                 throw new MalformedSplineException(
-                        "Could not parameterize a malformed spline. "
-                                + "This means that you probably had two or more adjacent waypoints that were very close "
-                                + "together with headings in opposing directions.");
+                        "Could not parameterize a malformed spline. This means that you probably had two or "
+                                + " more adjacent waypoints that were very close together with headings in "
+                                + "opposing directions.");
             }
         }
 

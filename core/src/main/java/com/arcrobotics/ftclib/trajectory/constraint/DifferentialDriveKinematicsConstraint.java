@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory.constraint;
 
@@ -52,7 +49,7 @@ public class DifferentialDriveKinematicsConstraint implements TrajectoryConstrai
 
         // Get the wheel speeds and normalize them to within the max velocity.
         DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
-        wheelSpeeds.normalize(m_maxSpeedMetersPerSecond);
+        wheelSpeeds.desaturate(m_maxSpeedMetersPerSecond);
 
         // Return the new linear chassis speed.
         return m_kinematics.toChassisSpeeds(wheelSpeeds).vxMetersPerSecond;

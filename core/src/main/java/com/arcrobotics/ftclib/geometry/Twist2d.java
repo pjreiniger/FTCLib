@@ -1,8 +1,14 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package com.arcrobotics.ftclib.geometry;
 
+import java.util.Objects;
+
 /**
- * A change in distance along arc since the last pose update. We can use ideas from differential
- * calculus to create new Pose2ds from a Twist2d and vise versa.
+ * A change in distance along a 2D arc since the last pose update. We can use ideas from
+ * differential calculus to create new Pose2d objects from a Twist2d and vice versa.
  *
  * <p>A Twist can be used to represent a difference between two poses.
  */
@@ -16,6 +22,7 @@ public class Twist2d {
     /** Angular "dtheta" component (radians). */
     public double dtheta;
 
+    /** Default constructor. */
     public Twist2d() {}
 
     /**
@@ -50,5 +57,10 @@ public class Twist2d {
                     && Math.abs(((Twist2d) obj).dtheta - dtheta) < 1E-9;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dx, dy, dtheta);
     }
 }

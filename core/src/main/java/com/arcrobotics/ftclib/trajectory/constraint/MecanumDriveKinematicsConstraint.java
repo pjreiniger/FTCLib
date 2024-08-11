@@ -1,9 +1,6 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2019 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package com.arcrobotics.ftclib.trajectory.constraint;
 
@@ -22,8 +19,9 @@ public class MecanumDriveKinematicsConstraint implements TrajectoryConstraint {
     private final MecanumDriveKinematics m_kinematics;
 
     /**
-     * Constructs a mecanum drive dynamics constraint.
+     * Constructs a mecanum drive kinematics constraint.
      *
+     * @param kinematics Mecanum drive kinematics.
      * @param maxSpeedMetersPerSecond The max speed that a side of the robot can travel at.
      */
     public MecanumDriveKinematicsConstraint(
@@ -56,7 +54,7 @@ public class MecanumDriveKinematicsConstraint implements TrajectoryConstraint {
 
         // Get the wheel speeds and normalize them to within the max velocity.
         MecanumDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(chassisSpeeds);
-        wheelSpeeds.normalize(m_maxSpeedMetersPerSecond);
+        wheelSpeeds.desaturate(m_maxSpeedMetersPerSecond);
 
         // Convert normalized wheel speeds back to chassis speeds
         ChassisSpeeds normSpeeds = m_kinematics.toChassisSpeeds(wheelSpeeds);

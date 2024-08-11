@@ -1,51 +1,39 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package com.arcrobotics.ftclib.geometry;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
 class Transform2dTest {
     private static final double kEpsilon = 1E-9;
-    Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
-    Transform2d base = new Transform2d(new Translation2d(10, 10), new Rotation2d(1));
 
     @Test
     void testInverse() {
-        Transform2d transformation =
+        Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+        Transform2d transform =
                 new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
 
-        Pose2d transformed = initial.plus(transformation);
-        Pose2d untransformed = transformed.plus(transformation.inverse());
+        Pose2d transformed = initial.plus(transform);
+        Pose2d untransformed = transformed.plus(transform.inverse());
 
-        assertAll(
-                () -> assertEquals(initial.getX(), untransformed.getX(), kEpsilon),
-                () -> assertEquals(initial.getY(), untransformed.getY(), kEpsilon),
-                () ->
-                        assertEquals(
-                                initial.getRotation().getDegrees(),
-                                untransformed.getRotation().getDegrees(),
-                                kEpsilon));
+        assertEquals(initial, untransformed);
     }
 
     @Test
-    void times() {
-        assertEquals(new Transform2d(new Translation2d(20, 20), new Rotation2d(2)), base.times(2));
-    }
+    void testComposition() {
+        Pose2d initial = new Pose2d(new Translation2d(1.0, 2.0), Rotation2d.fromDegrees(45.0));
+        Transform2d transform1 =
+                new Transform2d(new Translation2d(5.0, 0.0), Rotation2d.fromDegrees(5.0));
+        Transform2d transform2 =
+                new Transform2d(new Translation2d(0.0, 2.0), Rotation2d.fromDegrees(5.0));
 
-    @Test
-    void getTranslation() {
-        assertEquals(new Translation2d(10, 10), base.getTranslation());
-    }
+        Pose2d transformedSeparate = initial.plus(transform1).plus(transform2);
+        Pose2d transformedCombined = initial.plus(transform1.plus(transform2));
 
-    @Test
-    void getRotation() {
-        assertEquals(new Rotation2d(1), base.getRotation());
-    }
-
-    @Test
-    void testEquals() {
-        assertTrue(base.equals(new Transform2d(new Translation2d(10, 10), new Rotation2d(1))));
+        assertEquals(transformedSeparate, transformedCombined);
     }
 }
